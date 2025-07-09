@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>店舗別貸借分析システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .status-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .status-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .status-info {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .status-loading {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            height: fit-content;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card h3 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-card.positive {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        .summary-card.negative {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+
+        .summary-card.neutral {
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        }
+
+        .details-section {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .details-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .details-header h3 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .details-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .amount {
+            text-align: right;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .amount.positive {
+            color: #22c55e;
+        }
+
+        .amount.negative {
+            color: #ef4444;
+        }
+
+        .type-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-貸出 {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .type-借入 {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .export-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .export-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .retry-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 店舗別貸借分析システム</h1>
+            <p>lending-records.csv を自動読み込みして分析</p>
+        </div>
+
+        <div class="status-section">
+            <h3>📈 システム状態</h3>
+            <div id="status-info" class="status-loading">
+                <span class="loading-spinner"></span>
+                データを読み込み中...
+            </div>
+            <button id="debug-btn" class="retry-btn" style="display: none; margin-top: 10px;">
+                🐛 詳細デバッグ情報を表示
+            </button>
+            <div id="debug-info" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin-top: 10px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="search-section" id="search-section">
+            <h2 style="margin-bottom: 20px;">🔍 データ検索・分析</h2>
+            <form class="search-form" id="search-form">
+                <div class="form-group">
+                    <label for="start-date">開始日</label>
+                    <input type="date" id="start-date" name="startDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="end-date">終了日</label>
+                    <input type="date" id="end-date" name="endDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="store-name">店舗名</label>
+                    <select id="store-name" name="storeName" required>
+                        <option value="">店舗を選択してください</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="search-btn">🔍 検索実行</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="results-section" id="results-section">
+            <div class="summary-cards" id="summary-cards">
+            </div>
+
+            <div class="details-section">
+                <div class="details-header">
+                    <h3 id="details-title">取引詳細</h3>
+                    <p id="details-subtitle">期間内の全取引データ</p>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日付</th>
+                                <th>取引種別</th>
+                                <th>相手方</th>
+                                <th>品目</th>
+                                <th>カテゴリー</th>
+                                <th>金額</th>
+                            </tr>
+                        </thead>
+                        <tbody id="details-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="export-section">
+                <button class="export-btn" id="export-btn">📊 結果をCSV出力</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        class AutoCSVAnalyzer {
+            constructor() {
+                this.data = [];
+                this.searchResults = [];
+                this.statusDiv = document.getElementById('status-info');
+                
+                // main.jsと同じ店舗リストを使用
+                this.shops = [
+                    "MARUGO‑D", "MARUGO‑OTTO", "元祖どないや新宿三丁目", "鮨こるり",
+                    "MARUGO", "MARUGO2", "MARUGO GRANDE", "MARUGO MARUNOUCHI",
+                    "マルゴ新橋", "MARUGO YOTSUYA", "371BAR", "三三五五",
+                    "BAR PELOTA", "Claudia2", "BISTRO CAVA,CAVA", "eric'S",
+                    "MITAN", "焼肉マルゴ", "SOBA‑JU", "Bar Violet",
+                    "X&C", "トラットリア ブリッコラ"
+                ];
+                
+                this.init();
+            }
+
+            async init() {
+                this.log('システム初期化中...', 'loading');
+                this.setupEventListeners();
+                this.setDefaultDates();
+                await this.loadCSVData();
+            }
+
+            debugLog(message, data = null) {
+                const debugDiv = document.getElementById('debug-info');
+                const timestamp = new Date().toLocaleTimeString();
+                let logEntry = `[${timestamp}] ${message}`;
+                if (data) {
+                    logEntry += `\n${JSON.stringify(data, null, 2)}`;
+                }
+                
+                const logElement = document.createElement('div');
+                logElement.style.marginBottom = '10px';
+                logElement.style.paddingBottom = '10px';
+                logElement.style.borderBottom = '1px solid #e9ecef';
+                logElement.textContent = logEntry;
+                debugDiv.appendChild(logElement);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+                
+                console.log(message, data);
+            }
+
+            showDebugInfo() {
+                const debugBtn = document.getElementById('debug-btn');
+                const debugInfo = document.getElementById('debug-info');
+                
+                debugBtn.style.display = 'block';
+                debugBtn.onclick = () => {
+                    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+                    debugBtn.textContent = debugInfo.style.display === 'none' ? '🐛 詳細デバッグ情報を表示' : '🐛 デバッグ情報を非表示';
+                };
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}`;
+                
+                if (type === 'loading') {
+                    this.statusDiv.className = 'status-loading';
+                    this.statusDiv.innerHTML = `<span class="loading-spinner"></span>${logEntry}`;
+                } else {
+                    this.statusDiv.className = type === 'error' ? 'status-error' : type === 'success' ? 'status-success' : 'status-info';
+                    this.statusDiv.textContent = logEntry;
+                }
+                
+                console.log(logEntry);
+            }
+
+            async loadCSVData() {
+                const csvPaths = [
+                    './lending-records.csv',
+                    '../lending-records.csv',
+                    './data/lending-records.csv',
+                    'lending-records.csv'
+                ];
+
+                this.log('CSVファイルを検索中...', 'loading');
+                this.showDebugInfo(); // デバッグボタンを表示
+
+                for (const path of csvPaths) {
+                    try {
+                        this.log(`試行中: ${path}`, 'loading');
+                        this.debugLog(`CSVファイルパス試行: ${path}`);
+                        
+                        const response = await fetch(path);
+                        this.debugLog(`レスポンス状態: ${response.status} ${response.statusText}`);
+                        
+                        if (response.ok) {
+                            const csvData = await response.text();
+                            this.log(`ファイル読み込み成功: ${path}`, 'success');
+                            this.debugLog(`読み込み成功: ${path} (${csvData.length}文字)`);
+                            
+                            await this.processCSVData(csvData);
+                            this.populateStoreDropdown();
+                            
+                            this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.shops.length}店舗（固定リスト）`, 'success');
+                            this.debugLog('使用する店舗リスト（main.jsと同じ）', this.shops);
+                            
+                            // 検索セクションを表示
+                            document.getElementById('search-section').style.display = 'block';
+                            return;
+                        }
+                    } catch (error) {
+                        this.debugLog(`${path} で失敗`, error.message);
+                        console.log(`${path} で失敗:`, error.message);
+                    }
+                }
+
+                // すべてのパスで失敗した場合
+                this.log('CSVファイルが見つかりません', 'error');
+                this.debugLog('全CSVパスで読み込み失敗');
+                this.showRetryOption();
+            }
+
+            showRetryOption() {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'retry-btn';
+                retryBtn.textContent = '🔄 再試行';
+                retryBtn.onclick = () => {
+                    retryBtn.remove();
+                    this.loadCSVData();
+                };
+                this.statusDiv.parentElement.appendChild(retryBtn);
+            }
+
+            async processCSVData(csvData) {
+                this.log('データを解析中...', 'loading');
+                this.debugLog('CSVデータサイズ', `${csvData.length}文字`);
+                this.debugLog('CSVデータの最初の500文字', csvData.substring(0, 500));
+
+                const parsedData = Papa.parse(csvData, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: false,
+                    encoding: 'UTF-8'
+                });
+
+                if (parsedData.errors.length > 0) {
+                    this.debugLog('Papa Parse エラー', parsedData.errors);
+                }
+
+                const fields = parsedData.meta?.fields || [];
+                this.debugLog('検出されたフィールド', fields);
+                
+                // フィールドマッピング
+                const getField = (aliases) => {
+                    for (const alias of aliases) {
+                        const found = fields.find(f => 
+                            f === alias || 
+                            f.toLowerCase().includes(alias.toLowerCase()) || 
+                            alias.toLowerCase().includes(f.toLowerCase())
+                        );
+                        if (found) {
+                            this.debugLog(`フィールドマッピング成功: ${aliases[0]} -> ${found}`);
+                            return found;
+                        }
+                    }
+                    this.debugLog(`フィールドマッピング失敗: ${aliases[0]}`);
+                    return null;
+                };
+
+                const dateKey = getField(['日付', 'date', '取引日']) || getField(['入力日時', 'inputDate']);
+                const nameKey = getField(['名前', 'name', '取引名']);
+                const lenderKey = getField(['貸主', 'lender']);
+                const borrowerKey = getField(['借主', 'borrower']);
+                const categoryKey = getField(['カテゴリー', 'category']);
+                const itemKey = getField(['品目', 'item']);
+                const amountKey = getField(['金額', 'amount']);
+                const inputDateKey = getField(['入力日時', 'inputDate']);
+
+                this.debugLog('使用するフィールドマッピング', {
+                    dateKey, nameKey, lenderKey, borrowerKey, categoryKey, itemKey, amountKey, inputDateKey
+                });
+
+                this.debugLog('生データサンプル（最初の3行）', parsedData.data.slice(0, 3));
+
+                this.data = parsedData.data.map((row, index) => {
+                    let extractedDate = '';
+                    if (dateKey && row[dateKey]) {
+                        extractedDate = this.extractDateFromDateTime(row[dateKey]);
+                    } else if (inputDateKey && row[inputDateKey]) {
+                        extractedDate = this.extractDateFromDateTime(row[inputDateKey]);
+                    }
+
+                    const processedRow = {
+                        date: extractedDate,
+                        name: (nameKey && row[nameKey]) ? row[nameKey] : '',
+                        lender: (lenderKey && row[lenderKey]) ? row[lenderKey].trim() : '',
+                        borrower: (borrowerKey && row[borrowerKey]) ? row[borrowerKey].trim() : '',
+                        category: (categoryKey && row[categoryKey]) ? row[categoryKey] : '',
+                        item: (itemKey && row[itemKey]) ? row[itemKey] : '',
+                        amount: (amountKey && row[amountKey]) ? this.parseAmount(row[amountKey]) : 0,
+                        originalAmount: (amountKey && row[amountKey]) ? row[amountKey] : '',
+                        inputDate: (inputDateKey && row[inputDateKey]) ? row[inputDateKey] : ''
+                    };
+
+                    if (index < 5) {
+                        this.debugLog(`処理済みデータサンプル（行${index + 1}）`, processedRow);
+                    }
+
+                    return processedRow;
+                }).filter((row, index) => {
+                    const isValid = row.date && (row.lender || row.borrower);
+                    if (!isValid && index < 10) {
+                        this.debugLog(`無効行をフィルタ（行${index + 1}）`, row);
+                    }
+                    return isValid;
+                });
+
+                this.debugLog(`最終データ件数: ${this.data.length}件`);
+                
+                // 店舗名の一覧を抽出してログ出力
+                const allLenders = [...new Set(this.data.map(row => row.lender).filter(Boolean))].sort();
+                const allBorrowers = [...new Set(this.data.map(row => row.borrower).filter(Boolean))].sort();
+                const allStores = [...new Set([...allLenders, ...allBorrowers])].sort();
+                
+                this.debugLog('貸主一覧', allLenders);
+                this.debugLog('借主一覧', allBorrowers);
+                this.debugLog('全店舗一覧', allStores);
+                
+                // cavacava関連データの詳細確認
+                const cavaData = this.data.filter(row => 
+                    row.lender.toLowerCase().includes('cava') || 
+                    row.borrower.toLowerCase().includes('cava')
+                );
+                this.debugLog('cavacava関連データ', cavaData);
+
+                // 店舗別データ数
+                const storeStats = {};
+                this.data.forEach(row => {
+                    [row.lender, row.borrower].filter(Boolean).forEach(store => {
+                        storeStats[store] = (storeStats[store] || 0) + 1;
+                    });
+                });
+                this.debugLog('店舗別データ数', storeStats);
+            }
+
+            extractDateFromDateTime(dateTimeStr) {
+                if (!dateTimeStr) return '';
+                
+                try {
+                    const date = new Date(dateTimeStr);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().split('T')[0];
+                    }
+                    
+                    const japaneseMatch = dateTimeStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                    if (japaneseMatch) {
+                        const [, year, month, day] = japaneseMatch;
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                    
+                    const slashMatch = dateTimeStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+                    if (slashMatch) {
+                        const [, year, month, day] = slashMatch;
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                    
+                    const hyphenMatch = dateTimeStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                    if (hyphenMatch) {
+                        const [, year, month, day] = hyphenMatch;
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                    
+                    return '';
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            parseAmount(amountStr) {
+                if (!amountStr) return 0;
+                const normalized = amountStr.toString().replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
+                const cleaned = normalized.replace(/[,\s]/g, '');
+                return parseFloat(cleaned) || 0;
+            }
+
+            populateStoreDropdown() {
+                const storeSelect = document.getElementById('store-name');
+                
+                // 既存のオプションをクリア（最初のオプションは残す）
+                while (storeSelect.children.length > 1) {
+                    storeSelect.removeChild(storeSelect.lastChild);
+                }
+
+                // main.jsと同じ店舗リストを使用
+                this.shops.forEach(store => {
+                    const option = document.createElement('option');
+                    option.value = store;
+                    option.textContent = store;
+                    storeSelect.appendChild(option);
+                });
+
+                this.debugLog('店舗プルダウン設定完了', this.shops);
+                this.log(`店舗プルダウン設定完了: ${this.shops.length}店舗`, 'success');
+            }
+
+            setupEventListeners() {
+                const searchForm = document.getElementById('search-form');
+                const exportBtn = document.getElementById('export-btn');
+
+                searchForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.performSearch();
+                });
+
+                exportBtn.addEventListener('click', () => {
+                    this.exportResults();
+                });
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                
+                document.getElementById('start-date').value = oneMonthAgo.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            }
+
+            performSearch() {
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                const storeName = document.getElementById('store-name').value;
+
+                if (!startDate || !endDate || !storeName) {
+                    this.log('すべての検索条件を入力してください', 'error');
+                    return;
+                }
+
+                this.searchResults = this.data.filter(row => {
+                    const dateMatch = row.date >= startDate && row.date <= endDate;
+                    const storeMatch = row.lender === storeName || row.borrower === storeName;
+                    return dateMatch && storeMatch;
+                });
+
+                this.log(`検索完了: ${this.searchResults.length}件の取引が見つかりました`, 'success');
+                this.displayResults(storeName);
+            }
+
+            displayResults(storeName) {
+                const resultsSection = document.getElementById('results-section');
+                resultsSection.style.display = 'block';
+
+                this.updateSummaryCards(storeName);
+                this.updateDetailsTable();
+            }
+
+            updateSummaryCards(storeName) {
+                const summaryCards = document.getElementById('summary-cards');
+                
+                let totalLent = 0;
+                let totalBorrowed = 0;
+                
+                this.searchResults.forEach(row => {
+                    if (row.lender === storeName) {
+                        totalLent += row.amount;
+                    } else if (row.borrower === storeName) {
+                        totalBorrowed += row.amount;
+                    }
+                });
+
+                const balance = totalLent - totalBorrowed;
+
+                summaryCards.innerHTML = `
+                    <div class="summary-card positive">
+                        <h3>貸出合計</h3>
+                        <div class="value">¥${totalLent.toLocaleString()}</div>
+                        <p>${this.searchResults.filter(row => row.lender === storeName).length}件</p>
+                    </div>
+                    <div class="summary-card negative">
+                        <h3>借入合計</h3>
+                        <div class="value">¥${totalBorrowed.toLocaleString()}</div>
+                        <p>${this.searchResults.filter(row => row.borrower === storeName).length}件</p>
+                    </div>
+                    <div class="summary-card ${balance >= 0 ? 'positive' : 'negative'}">
+                        <h3>残高</h3>
+                        <div class="value">¥${balance.toLocaleString()}</div>
+                        <p>${balance >= 0 ? '黒字' : '赤字'}</p>
+                    </div>
+                    <div class="summary-card neutral">
+                        <h3>取引件数</h3>
+                        <div class="value">${this.searchResults.length}</div>
+                        <p>件</p>
+                    </div>
+                `;
+            }
+
+            updateDetailsTable() {
+                const detailsTable = document.getElementById('details-table');
+                
+                if (this.searchResults.length === 0) {
+                    detailsTable.innerHTML = '<tr><td colspan="6" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    return;
+                }
+
+                detailsTable.innerHTML = this.searchResults.map(row => {
+                    const storeName = document.getElementById('store-name').value;
+                    const isLender = row.lender === storeName;
+                    const transactionType = isLender ? '貸出' : '借入';
+                    const counterpart = isLender ? row.borrower : row.lender;
+                    const amountClass = isLender ? 'positive' : 'negative';
+
+                    return `
+                        <tr>
+                            <td>${row.date}</td>
+                            <td><span class="type-tag type-${transactionType}">${transactionType}</span></td>
+                            <td>${counterpart}</td>
+                            <td>${row.item}</td>
+                            <td>${row.category}</td>
+                            <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            exportResults() {
+                if (this.searchResults.length === 0) {
+                    alert('エクスポートするデータがありません');
+                    return;
+                }
+
+                const csvData = Papa.unparse(this.searchResults.map(row => ({
+                    日付: row.date,
+                    取引名: row.name,
+                    貸主: row.lender,
+                    借主: row.borrower,
+                    カテゴリー: row.category,
+                    品目: row.item,
+                    金額: row.amount
+                })));
+
+                const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `検索結果_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                this.log('CSV出力完了', 'success');
+            }
+        }
+
+        // アプリケーション初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            new AutoCSVAnalyzer();
+        });
+    </script>
+</body>
+</html>

@@ -213,6 +213,18 @@
             margin-bottom: 5px;
         }
 
+        .summary-card.positive {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        .summary-card.negative {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+
+        .summary-card.neutral {
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        }
+
         .summary-card .breakdown {
             font-size: 1.4rem;
             opacity: 0.8;
@@ -225,18 +237,6 @@
         .summary-card .breakdown-item {
             display: inline-block;
             margin: 1px 0;
-        }
-
-        .summary-card.positive {
-            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-        }
-
-        .summary-card.negative {
-            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-        }
-
-        .summary-card.neutral {
-            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
         }
 
         .details-section {
@@ -374,32 +374,6 @@
             transform: translateY(-2px);
         }
 
-        .file-upload-section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .file-upload {
-            padding: 20px;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
-            background: #f8f9ff;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .file-upload:hover {
-            background: #f0f4ff;
-        }
-
-        .file-upload input {
-            display: none;
-        }
-
         @media (max-width: 768px) {
             .search-form {
                 grid-template-columns: 1fr;
@@ -419,18 +393,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 店舗別貸借分析システム（改善版）</h1>
-            <p>CSVファイルをアップロードまたは自動読み込みして分析</p>
-        </div>
-
-        <div class="file-upload-section">
-            <h3 style="margin-bottom: 20px;">📁 CSVファイルアップロード</h3>
-            <div class="file-upload" onclick="document.getElementById('csv-file').click()">
-                <input type="file" id="csv-file" accept=".csv" />
-                <p>📄 CSVファイルをクリックして選択またはドラッグ&ドロップ</p>
-                <p style="font-size: 14px; color: #666; margin-top: 10px;">
-                    自動読み込み対応ファイル: lendingrecords.csv, lending-records.csv
-                </p>
-            </div>
+            <p>lendingrecords.csv を自動読み込みして分析</p>
         </div>
 
         <div class="status-section">
@@ -612,7 +575,7 @@
                 }
 
                 // 自動読み込み失敗時
-                this.log('自動読み込み失敗：手動でCSVファイルをアップロードしてください', 'error');
+                this.log('CSVファイルが見つかりません', 'error');
                 this.debugLog('全CSVパスで読み込み失敗');
             }
 
@@ -797,7 +760,6 @@
             setupEventListeners() {
                 const searchForm = document.getElementById('search-form');
                 const exportBtn = document.getElementById('export-btn');
-                const fileInput = document.getElementById('csv-file');
 
                 searchForm.addEventListener('submit', (e) => {
                     e.preventDefault();
@@ -807,55 +769,6 @@
                 exportBtn.addEventListener('click', () => {
                     this.exportResults();
                 });
-
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        this.handleFileUpload(file);
-                    }
-                });
-
-                // ドラッグ&ドロップ対応
-                const uploadSection = document.querySelector('.file-upload');
-                uploadSection.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    uploadSection.style.background = '#e6f0ff';
-                });
-
-                uploadSection.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    uploadSection.style.background = '#f8f9ff';
-                });
-
-                uploadSection.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    uploadSection.style.background = '#f8f9ff';
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        this.handleFileUpload(files[0]);
-                    }
-                });
-            }
-
-            async handleFileUpload(file) {
-                if (!file.name.toLowerCase().endsWith('.csv')) {
-                    this.log('CSVファイルを選択してください', 'error');
-                    return;
-                }
-
-                this.log(`ファイルを読み込み中: ${file.name}`, 'loading');
-                
-                try {
-                    const text = await file.text();
-                    await this.processCSVData(text);
-                    this.populateStoreDropdown();
-                    
-                    this.log(`手動アップロード完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
-                    document.getElementById('search-section').style.display = 'block';
-                } catch (error) {
-                    this.log('ファイル読み込みエラー', 'error');
-                    this.debugLog('ファイル読み込みエラー', error);
-                }
             }
 
             setDefaultDates() {

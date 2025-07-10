@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>店舗別貸借分析システム (Google Sheets版)</title>
+    <title>店舗別貸借分析システム</title>
     <style>
         * {
             margin: 0;
@@ -126,11 +126,6 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             align-items: end;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
         }
 
         .form-group label {
@@ -374,28 +369,6 @@
             transform: translateY(-2px);
         }
 
-        .help-section {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .help-section h4 {
-            color: #1976d2;
-            margin-bottom: 10px;
-        }
-
-        .help-section ol {
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .help-section li {
-            margin-bottom: 5px;
-        }
-
         @media (max-width: 768px) {
             .search-form {
                 grid-template-columns: 1fr;
@@ -415,13 +388,13 @@
     <div class="container">
         <div class="header">
             <h1>📊 店舗別貸借分析システム</h1>
-            <p>Googleスプレッドシートから自動でデータを読み込み・分析</p>
+            <p>Google Sheets API を使用してリアルタイムデータ分析</p>
         </div>
 
         <div class="status-section">
             <h3>📈 システム状態</h3>
             <div id="status-info" class="status-info">
-                スプレッドシートURLを入力してデータを読み込んでください
+                APIキーを入力して接続を開始してください
             </div>
             <button id="debug-btn" class="retry-btn" style="display: none; margin-top: 10px;">
                 🐛 詳細デバッグ情報を表示
@@ -492,13 +465,16 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
-        class GoogleSheetsAnalyzer {
+        class GoogleSheetsAPIAnalyzer {
             constructor() {
                 this.data = [];
                 this.searchResults = [];
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
-                this.sheetsUrl = '';
+                // ここにあなたのAPIキーを貼り付けてください
+                this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
+                this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
+                this.sheetName = 'データ';
                 
                 this.init();
             }
@@ -507,8 +483,13 @@
                 this.log('システム初期化中...', 'loading');
                 this.setupEventListeners();
                 this.setDefaultDates();
-                this.setDefaultURL();
-                await this.loadGoogleSheetsData();
+                
+                // APIキーが設定されている場合は自動接続
+                if (this.apiKey !== 'YOUR_API_KEY_HERE') {
+                    await this.connectToGoogleSheets();
+                } else {
+                    this.log('APIキーを設定してください', 'error');
+                }
             }
 
             debugLog(message, data = null) {
@@ -556,78 +537,48 @@
                 console.log(logEntry);
             }
 
-            // GoogleスプレッドシートのURLからCSV URLを生成
-            convertToCSVUrl(sheetsUrl) {
-                try {
-                    // URLからスプレッドシートIDを抽出
-                    const urlMatch = sheetsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-                    if (!urlMatch) {
-                        throw new Error('無効なGoogleスプレッドシートURLです');
-                    }
-                    
-                    const spreadsheetId = urlMatch[1];
-                    
-                    // gid（シートID）を抽出（デフォルトは0）
-                    let gid = '0';
-                    const gidMatch = sheetsUrl.match(/[#&]gid=([0-9]+)/);
-                    if (gidMatch) {
-                        gid = gidMatch[1];
-                    }
-                    
-                    // CSV出力用URLを生成
-                    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-                    
-                    this.debugLog('URL変換成功', {
-                        original: sheetsUrl,
-                        spreadsheetId: spreadsheetId,
-                        gid: gid,
-                        csvUrl: csvUrl
-                    });
-                    
-                    return csvUrl;
-                } catch (error) {
-                    this.debugLog('URL変換失敗', error.message);
-                    throw error;
-                }
-            }
-
-            async loadGoogleSheetsData() {
-                const urlInput = document.getElementById('sheet-url');
-                const inputUrl = urlInput.value.trim();
-                
-                if (!inputUrl) {
-                    this.log('スプレッドシートURLを入力してください', 'error');
+            async connectToGoogleSheets() {
+                if (!this.apiKey || this.apiKey === 'YOUR_API_KEY_HERE') {
+                    this.log('APIキーが設定されていません', 'error');
                     return;
                 }
 
-                this.log('Googleスプレッドシートからデータを自動読み込み中...', 'loading');
+                this.log('Google Sheets API に接続中...', 'loading');
                 this.showDebugInfo();
 
                 try {
-                    // URLをCSV形式に変換
-                    const csvUrl = this.convertToCSVUrl(inputUrl);
-                    this.sheetsUrl = csvUrl;
+                    // Google Sheets API v4 を使用してデータを取得
+                    const range = `${this.sheetName}!A:Z`; // 全列を取得
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
                     
-                    this.debugLog('データ取得開始', csvUrl);
+                    this.debugLog('API リクエスト URL', url);
                     
-                    // CORS回避のためproxy経由またはfetch直接アクセス
-                    const response = await fetch(csvUrl);
+                    const response = await fetch(url);
                     
-                    this.debugLog('レスポンス受信', {
+                    this.debugLog('API レスポンス', {
                         status: response.status,
-                        statusText: response.statusText,
-                        headers: Object.fromEntries([...response.headers.entries()])
+                        statusText: response.statusText
                     });
                     
                     if (!response.ok) {
-                        throw new Error(`データ取得失敗: ${response.status} ${response.statusText}`);
+                        if (response.status === 403) {
+                            throw new Error('APIキーが無効または権限が不足しています。APIキーとスプレッドシートの共有設定を確認してください。');
+                        } else if (response.status === 400) {
+                            throw new Error('スプレッドシートIDまたはシート名が正しくありません。');
+                        } else {
+                            throw new Error(`API エラー: ${response.status} ${response.statusText}`);
+                        }
                     }
                     
-                    const csvData = await response.text();
-                    this.log('データ取得成功', 'success');
-                    this.debugLog('取得データサイズ', `${csvData.length}文字`);
+                    const data = await response.json();
+                    this.debugLog('取得データ', data);
                     
-                    await this.processCSVData(csvData);
+                    if (!data.values || data.values.length === 0) {
+                        throw new Error('スプレッドシートにデータが見つかりません。');
+                    }
+                    
+                    this.log('データ取得成功', 'success');
+                    await this.processSheetData(data.values);
                     this.populateStoreDropdown();
                     
                     this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
@@ -635,88 +586,76 @@
                     document.getElementById('search-section').style.display = 'block';
                     
                 } catch (error) {
-                    this.log(`データ読み込みエラー: ${error.message}`, 'error');
-                    this.debugLog('読み込みエラー詳細', error);
-                    
-                    // エラー時のヘルプメッセージ
-                    if (error.message.includes('CORS') || error.message.includes('Network')) {
-                        this.log('スプレッドシートが正しく共有されているか確認してください', 'error');
-                    }
+                    this.log(`接続エラー: ${error.message}`, 'error');
+                    this.debugLog('接続エラー詳細', error);
                 }
             }
 
-            async processCSVData(csvData) {
+            async processSheetData(values) {
                 this.log('データを解析中...', 'loading');
-                this.debugLog('CSVデータサイズ', `${csvData.length}文字`);
-                this.debugLog('CSVデータの最初の500文字', csvData.substring(0, 500));
-
-                const parsedData = Papa.parse(csvData, {
-                    header: true,
-                    skipEmptyLines: true,
-                    dynamicTyping: false,
-                    encoding: 'UTF-8'
-                });
-
-                if (parsedData.errors.length > 0) {
-                    this.debugLog('Papa Parse エラー', parsedData.errors);
+                
+                if (values.length === 0) {
+                    throw new Error('データが空です');
                 }
 
-                const fields = parsedData.meta?.fields || [];
-                this.debugLog('検出されたフィールド', fields);
+                // ヘッダー行を取得
+                const headers = values[0];
+                this.debugLog('ヘッダー行', headers);
                 
-                // 改善されたフィールドマッピング
-                const getField = (aliases) => {
+                // フィールドマッピング
+                const getColumnIndex = (aliases) => {
                     for (const alias of aliases) {
-                        const found = fields.find(f => {
-                            if (f === alias) return true;
-                            if (f.toLowerCase().includes(alias.toLowerCase()) || 
-                                alias.toLowerCase().includes(f.toLowerCase())) return true;
-                            if (alias === 'date' && (f === '›' || f.includes('日付'))) return true;
+                        const index = headers.findIndex(header => {
+                            if (header === alias) return true;
+                            if (header.toLowerCase().includes(alias.toLowerCase()) || 
+                                alias.toLowerCase().includes(header.toLowerCase())) return true;
+                            if (alias === 'date' && (header === '›' || header.includes('日付'))) return true;
                             return false;
                         });
-                        if (found) {
-                            this.debugLog(`フィールドマッピング成功: ${aliases[0]} -> ${found}`);
-                            return found;
+                        if (index !== -1) {
+                            this.debugLog(`フィールドマッピング成功: ${aliases[0]} -> ${headers[index]} (列${index})`);
+                            return index;
                         }
                     }
                     this.debugLog(`フィールドマッピング失敗: ${aliases[0]}`);
-                    return null;
+                    return -1;
                 };
 
-                // フィールドマッピング
-                const dateKey = getField(['›', '日付', 'date', '取引日']) || fields[0];
-                const nameKey = getField(['名前', 'name', '取引名']);
-                const lenderKey = getField(['貸主', 'lender']);
-                const borrowerKey = getField(['借主', 'borrower']);
-                const categoryKey = getField(['カテゴリー', 'category']);
-                const itemKey = getField(['品目', 'item']);
-                const amountKey = getField(['金額', 'amount']);
-                const inputDateKey = getField(['入力日時', 'inputDate']);
+                const dateIndex = getColumnIndex(['›', '日付', 'date', '取引日']);
+                const nameIndex = getColumnIndex(['名前', 'name', '取引名']);
+                const lenderIndex = getColumnIndex(['貸主', 'lender']);
+                const borrowerIndex = getColumnIndex(['借主', 'borrower']);
+                const categoryIndex = getColumnIndex(['カテゴリー', 'category']);
+                const itemIndex = getColumnIndex(['品目', 'item']);
+                const amountIndex = getColumnIndex(['金額', 'amount']);
+                const inputDateIndex = getColumnIndex(['入力日時', 'inputDate']);
 
-                this.debugLog('使用するフィールドマッピング', {
-                    dateKey, nameKey, lenderKey, borrowerKey, categoryKey, itemKey, amountKey, inputDateKey
+                this.debugLog('フィールドインデックス', {
+                    dateIndex, nameIndex, lenderIndex, borrowerIndex, 
+                    categoryIndex, itemIndex, amountIndex, inputDateIndex
                 });
 
-                this.debugLog('生データサンプル（最初の3行）', parsedData.data.slice(0, 3));
-
-                this.data = parsedData.data.map((row, index) => {
+                // データ行を処理（ヘッダーをスキップ）
+                this.data = values.slice(1).map((row, index) => {
+                    const getValue = (colIndex) => colIndex !== -1 && row[colIndex] ? row[colIndex] : '';
+                    
                     let extractedDate = '';
-                    if (dateKey && row[dateKey]) {
-                        extractedDate = this.extractDateFromDateTime(row[dateKey]);
-                    } else if (inputDateKey && row[inputDateKey]) {
-                        extractedDate = this.extractDateFromDateTime(row[inputDateKey]);
+                    if (dateIndex !== -1 && row[dateIndex]) {
+                        extractedDate = this.extractDateFromDateTime(row[dateIndex]);
+                    } else if (inputDateIndex !== -1 && row[inputDateIndex]) {
+                        extractedDate = this.extractDateFromDateTime(row[inputDateIndex]);
                     }
 
                     const processedRow = {
                         date: extractedDate,
-                        name: (nameKey && row[nameKey]) ? row[nameKey] : '',
-                        lender: (lenderKey && row[lenderKey]) ? this.normalizeStoreName(row[lenderKey].trim()) : '',
-                        borrower: (borrowerKey && row[borrowerKey]) ? this.normalizeStoreName(row[borrowerKey].trim()) : '',
-                        category: (categoryKey && row[categoryKey]) ? row[categoryKey] : '',
-                        item: (itemKey && row[itemKey]) ? row[itemKey] : '',
-                        amount: (amountKey && row[amountKey]) ? this.parseAmount(row[amountKey]) : 0,
-                        originalAmount: (amountKey && row[amountKey]) ? row[amountKey] : '',
-                        inputDate: (inputDateKey && row[inputDateKey]) ? row[inputDateKey] : ''
+                        name: getValue(nameIndex),
+                        lender: this.normalizeStoreName(getValue(lenderIndex).trim()),
+                        borrower: this.normalizeStoreName(getValue(borrowerIndex).trim()),
+                        category: getValue(categoryIndex),
+                        item: getValue(itemIndex),
+                        amount: this.parseAmount(getValue(amountIndex)),
+                        originalAmount: getValue(amountIndex),
+                        inputDate: getValue(inputDateIndex)
                     };
 
                     // 店舗名を収集
@@ -724,14 +663,14 @@
                     if (processedRow.borrower) this.stores.add(processedRow.borrower);
 
                     if (index < 5) {
-                        this.debugLog(`処理済みデータサンプル（行${index + 1}）`, processedRow);
+                        this.debugLog(`処理済みデータサンプル（行${index + 2}）`, processedRow);
                     }
 
                     return processedRow;
                 }).filter((row, index) => {
                     const isValid = row.date && (row.lender || row.borrower);
                     if (!isValid && index < 10) {
-                        this.debugLog(`無効行をフィルタ（行${index + 1}）`, row);
+                        this.debugLog(`無効行をフィルタ（行${index + 2}）`, row);
                     }
                     return isValid;
                 });
@@ -831,12 +770,6 @@
                 exportBtn.addEventListener('click', () => {
                     this.exportResults();
                 });
-            }
-
-            setDefaultURL() {
-                const urlInput = document.getElementById('sheet-url');
-                const defaultURL = 'https://docs.google.com/spreadsheets/d/1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8/edit?gid=1705849325#gid=1705849325';
-                urlInput.value = defaultURL;
             }
 
             setDefaultDates() {
@@ -1061,7 +994,7 @@
 
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
-            new GoogleSheetsAnalyzer();
+            new GoogleSheetsAPIAnalyzer();
         });
     </script>
 </body>

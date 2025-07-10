@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>店舗別貸借分析システム</title>
+    <title>店舗別貸借分析システム (Google Sheets版)</title>
     <style>
         * {
             margin: 0;
@@ -374,6 +374,28 @@
             transform: translateY(-2px);
         }
 
+        .help-section {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .help-section h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .help-section ol {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .help-section li {
+            margin-bottom: 5px;
+        }
+
         @media (max-width: 768px) {
             .search-form {
                 grid-template-columns: 1fr;
@@ -392,15 +414,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 店舗別貸借分析システム（改善版）</h1>
-            <p>lendingrecords.csv を自動読み込みして分析</p>
+            <h1>📊 店舗別貸借分析システム</h1>
+            <p>Googleスプレッドシートから自動でデータを読み込み・分析</p>
         </div>
 
         <div class="status-section">
             <h3>📈 システム状態</h3>
-            <div id="status-info" class="status-loading">
-                <span class="loading-spinner"></span>
-                システム初期化中...
+            <div id="status-info" class="status-info">
+                スプレッドシートURLを入力してデータを読み込んでください
             </div>
             <button id="debug-btn" class="retry-btn" style="display: none; margin-top: 10px;">
                 🐛 詳細デバッグ情報を表示
@@ -471,12 +492,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
-        class ImprovedCSVAnalyzer {
+        class GoogleSheetsAnalyzer {
             constructor() {
                 this.data = [];
                 this.searchResults = [];
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
+                this.sheetsUrl = '';
                 
                 this.init();
             }
@@ -485,7 +507,8 @@
                 this.log('システム初期化中...', 'loading');
                 this.setupEventListeners();
                 this.setDefaultDates();
-                await this.loadCSVData();
+                this.setDefaultURL();
+                await this.loadGoogleSheetsData();
             }
 
             debugLog(message, data = null) {
@@ -533,50 +556,93 @@
                 console.log(logEntry);
             }
 
-            async loadCSVData() {
-                // まず自動読み込みを試行
-                const csvPaths = [
-                    'lendingrecords.csv',  // 正しいファイル名を最初に
-                    'lending-records.csv',
-                    './lendingrecords.csv',
-                    './lending-records.csv',
-                    '../lendingrecords.csv',
-                    './data/lendingrecords.csv'
-                ];
-
-                this.log('CSVファイルを検索中...', 'loading');
-                this.showDebugInfo();
-
-                for (const path of csvPaths) {
-                    try {
-                        this.log(`試行中: ${path}`, 'loading');
-                        this.debugLog(`CSVファイルパス試行: ${path}`);
-                        
-                        const response = await fetch(path);
-                        this.debugLog(`レスポンス状態: ${response.status} ${response.statusText}`);
-                        
-                        if (response.ok) {
-                            const csvData = await response.text();
-                            this.log(`ファイル読み込み成功: ${path}`, 'success');
-                            this.debugLog(`読み込み成功: ${path} (${csvData.length}文字)`);
-                            
-                            await this.processCSVData(csvData);
-                            this.populateStoreDropdown();
-                            
-                            this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
-                            
-                            document.getElementById('search-section').style.display = 'block';
-                            return;
-                        }
-                    } catch (error) {
-                        this.debugLog(`${path} で失敗`, error.message);
-                        console.log(`${path} で失敗:`, error.message);
+            // GoogleスプレッドシートのURLからCSV URLを生成
+            convertToCSVUrl(sheetsUrl) {
+                try {
+                    // URLからスプレッドシートIDを抽出
+                    const urlMatch = sheetsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                    if (!urlMatch) {
+                        throw new Error('無効なGoogleスプレッドシートURLです');
                     }
+                    
+                    const spreadsheetId = urlMatch[1];
+                    
+                    // gid（シートID）を抽出（デフォルトは0）
+                    let gid = '0';
+                    const gidMatch = sheetsUrl.match(/[#&]gid=([0-9]+)/);
+                    if (gidMatch) {
+                        gid = gidMatch[1];
+                    }
+                    
+                    // CSV出力用URLを生成
+                    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+                    
+                    this.debugLog('URL変換成功', {
+                        original: sheetsUrl,
+                        spreadsheetId: spreadsheetId,
+                        gid: gid,
+                        csvUrl: csvUrl
+                    });
+                    
+                    return csvUrl;
+                } catch (error) {
+                    this.debugLog('URL変換失敗', error.message);
+                    throw error;
+                }
+            }
+
+            async loadGoogleSheetsData() {
+                const urlInput = document.getElementById('sheet-url');
+                const inputUrl = urlInput.value.trim();
+                
+                if (!inputUrl) {
+                    this.log('スプレッドシートURLを入力してください', 'error');
+                    return;
                 }
 
-                // 自動読み込み失敗時
-                this.log('CSVファイルが見つかりません', 'error');
-                this.debugLog('全CSVパスで読み込み失敗');
+                this.log('Googleスプレッドシートからデータを自動読み込み中...', 'loading');
+                this.showDebugInfo();
+
+                try {
+                    // URLをCSV形式に変換
+                    const csvUrl = this.convertToCSVUrl(inputUrl);
+                    this.sheetsUrl = csvUrl;
+                    
+                    this.debugLog('データ取得開始', csvUrl);
+                    
+                    // CORS回避のためproxy経由またはfetch直接アクセス
+                    const response = await fetch(csvUrl);
+                    
+                    this.debugLog('レスポンス受信', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries([...response.headers.entries()])
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`データ取得失敗: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const csvData = await response.text();
+                    this.log('データ取得成功', 'success');
+                    this.debugLog('取得データサイズ', `${csvData.length}文字`);
+                    
+                    await this.processCSVData(csvData);
+                    this.populateStoreDropdown();
+                    
+                    this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
+                    
+                    document.getElementById('search-section').style.display = 'block';
+                    
+                } catch (error) {
+                    this.log(`データ読み込みエラー: ${error.message}`, 'error');
+                    this.debugLog('読み込みエラー詳細', error);
+                    
+                    // エラー時のヘルプメッセージ
+                    if (error.message.includes('CORS') || error.message.includes('Network')) {
+                        this.log('スプレッドシートが正しく共有されているか確認してください', 'error');
+                    }
+                }
             }
 
             async processCSVData(csvData) {
@@ -602,12 +668,9 @@
                 const getField = (aliases) => {
                     for (const alias of aliases) {
                         const found = fields.find(f => {
-                            // 完全一致
                             if (f === alias) return true;
-                            // 部分一致
                             if (f.toLowerCase().includes(alias.toLowerCase()) || 
                                 alias.toLowerCase().includes(f.toLowerCase())) return true;
-                            // 特殊文字対応（「›」など）
                             if (alias === 'date' && (f === '›' || f.includes('日付'))) return true;
                             return false;
                         });
@@ -620,8 +683,8 @@
                     return null;
                 };
 
-                // フィールドマッピング（改善版）
-                const dateKey = getField(['›', '日付', 'date', '取引日']) || fields[0]; // 最初の列を日付として使用
+                // フィールドマッピング
+                const dateKey = getField(['›', '日付', 'date', '取引日']) || fields[0];
                 const nameKey = getField(['名前', 'name', '取引名']);
                 const lenderKey = getField(['貸主', 'lender']);
                 const borrowerKey = getField(['借主', 'borrower']);
@@ -677,7 +740,7 @@
                 this.debugLog('検出された店舗一覧', Array.from(this.stores).sort());
             }
 
-            // 店舗名の正規化（表記ゆれ対応）
+            // 店舗名の正規化
             normalizeStoreName(storeName) {
                 if (!storeName) return '';
                 
@@ -695,7 +758,6 @@
                 if (!dateTimeStr) return '';
                 
                 try {
-                    // ISO形式の日付をそのまま使用
                     if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr)) {
                         return dateTimeStr;
                     }
@@ -771,6 +833,12 @@
                 });
             }
 
+            setDefaultURL() {
+                const urlInput = document.getElementById('sheet-url');
+                const defaultURL = 'https://docs.google.com/spreadsheets/d/1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8/edit?gid=1705849325#gid=1705849325';
+                urlInput.value = defaultURL;
+            }
+
             setDefaultDates() {
                 const today = new Date();
                 const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
@@ -820,7 +888,7 @@
                 let totalBorrowed = 0;
                 
                 this.searchResults.forEach(row => {
-                    // カテゴリーの正規化（品目からも推測）
+                    // カテゴリーの正規化
                     let category = row.category || 'その他';
                     const item = (row.item || '').toLowerCase();
                     
@@ -993,7 +1061,7 @@
 
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
-            new ImprovedCSVAnalyzer();
+            new GoogleSheetsAnalyzer();
         });
     </script>
 </body>

@@ -1,25 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>貸借管理フォーム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- PWA設定 -->
-  <meta name="theme-color" content="#2d3748">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="貸借管理">
-  
-  <!-- アイコン設定 -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%232d3748'/><text x='50' y='65' font-family='Arial' font-size='40' fill='white' text-anchor='middle'>💰</text></svg>">
-  
-  <!-- Apple Touch Icon -->
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232d3748'/><circle cx='90' cy='90' r='60' fill='%234a5568'/><text x='90' y='110' font-family='Arial' font-size='50' fill='white' text-anchor='middle'>💰</text></svg>">
-  
-  <!-- Manifest -->
-  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIui0uWXpmaLnrqHnkIbjgZXjgrnjg4bjg6AiLAogICJzaG9ydF9uYW1lIjogIui0uWXpmaIiLAogICJkZXNjcmlwdGlvbiI6ICLluo/oiJfnrqHnkIbjgrfjgrnjg4bjg6AiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzJkMzc0OCIsCiAgInRoZW1lX2NvbG9yIjogIiMyZDM3NDgiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsPHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJz48cmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzQwJyBmaWxsPSclMjMyZDM3NDgnLz48Y2lyY2xlIGN4PSc5NicgY3k9Jzk2JyByPSc2MCcgZmlsbD0nJTIzNGE1NTY4Jy8+PHRleHQgeD0nOTYnIHk9JzEyMCcgZm9udC1mYW1pbHk9J0FyaWFsJyBmb250LXNpemU9JzYwJyBmaWxsPSd3aGl0ZScgdGV4dC1hbmNob3I9J21pZGRsZSc+8J+SsDwvdGV4dD48L3N2Zz4iLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICB9LAogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDUxMiA1MTInPjxyZWN0IHdpZHRoPSc1MTInIGhlaWdodD0nNTEyJyByeD0nMTAwJyBmaWxsPSclMjMyZDM3NDgnLz48Y2lyY2xlIGN4PSIyNTYnIGN5PSIyNTYnIHI9JzE2MCcgZmlsbD0nJTIzNGE1NTY4Jy8+PHRleHQgeD0nMjU2JyB5PSczMjAnIGZvbnQtZmFtaWx5PSdBcmlhbCcgZm9udC1zaXplPScxNjAnIGZpbGw9J3doaXRlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7wn5KwPC90ZXh0Pjwvc3ZnPiIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
-  
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     * {
@@ -289,52 +273,6 @@
       transform: translateX(0);
     }
 
-    /* PWA Install Banner */
-    .install-banner {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #4a5568, #2d3748);
-      color: white;
-      padding: 16px 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(74, 85, 104, 0.3);
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 1001;
-    }
-
-    .install-banner.show {
-      display: flex;
-    }
-
-    .install-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .install-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .close-banner {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1.2rem;
-      cursor: pointer;
-      padding: 4px;
-      margin-left: 12px;
-    }
-
     @media (max-width: 640px) {
       .container {
         padding: 30px 20px;
@@ -348,12 +286,6 @@
 
       .category-grid {
         grid-template-columns: 1fr;
-      }
-
-      .install-banner {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
       }
     }
 
@@ -408,18 +340,6 @@
     <div class="shape"></div>
     <div class="shape"></div>
     <div class="shape"></div>
-  </div>
-
-  <!-- PWA Install Banner -->
-  <div class="install-banner" id="installBanner">
-    <div>
-      <div style="font-weight: 600; margin-bottom: 4px;">📱 ホーム画面に追加</div>
-      <div style="font-size: 0.9rem; opacity: 0.9;">アプリのように使用できます</div>
-    </div>
-    <div>
-      <button class="install-btn" id="installBtn">追加</button>
-      <button class="close-banner" id="closeBanner">×</button>
-    </div>
   </div>
 
   <div class="container">
@@ -481,115 +401,6 @@
     ✅ 送信完了しました！
   </div>
 
-  <script>
-    // PWA Install functionality
-    let deferredPrompt;
-    let installBanner = document.getElementById('installBanner');
-    let installBtn = document.getElementById('installBtn');
-    let closeBanner = document.getElementById('closeBanner');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent Chrome 67 and earlier from automatically showing the prompt
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      deferredPrompt = e;
-      // Show install banner
-      installBanner.classList.add('show');
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        // Show the install prompt
-        deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        // Clear the deferredPrompt
-        deferredPrompt = null;
-        // Hide the install banner
-        installBanner.classList.remove('show');
-      }
-    });
-
-    closeBanner.addEventListener('click', () => {
-      installBanner.classList.remove('show');
-    });
-
-    // Hide banner after app is installed
-    window.addEventListener('appinstalled', () => {
-      installBanner.classList.remove('show');
-      deferredPrompt = null;
-    });
-
-    // Set current date
-    document.getElementById('date').valueAsDate = new Date();
-
-    // Store options
-    const stores = ['MARUGO', 'MARUGO2', 'Claudia2', 'BAR PELOTA'];
-
-    // Populate store dropdowns
-    function populateStoreDropdowns() {
-      const lenderSelect = document.getElementById('lender');
-      const borrowerSelect = document.getElementById('borrower');
-      
-      stores.forEach(store => {
-        const lenderOption = new Option(store, store);
-        const borrowerOption = new Option(store, store);
-        lenderSelect.add(lenderOption);
-        borrowerSelect.add(borrowerOption);
-      });
-    }
-
-    // Category selection
-    document.querySelectorAll('.category-option').forEach(option => {
-      option.addEventListener('click', function() {
-        document.querySelectorAll('.category-option').forEach(opt => opt.classList.remove('selected'));
-        this.classList.add('selected');
-        document.getElementById('category').value = this.dataset.value;
-      });
-    });
-
-    // Amount input formatting
-    document.getElementById('amount').addEventListener('input', function(e) {
-      let value = e.target.value.replace(/[^\d]/g, '');
-      if (value) {
-        value = parseInt(value).toLocaleString();
-        e.target.value = value;
-      }
-    });
-
-    // Form submission
-    document.getElementById('loanForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const submitBtn = document.querySelector('.submit-btn');
-      const successMessage = document.getElementById('successMessage');
-      
-      // Show loading state
-      submitBtn.classList.add('loading');
-      submitBtn.disabled = true;
-      
-      // Simulate form submission delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Show success message
-      successMessage.classList.add('show');
-      setTimeout(() => {
-        successMessage.classList.remove('show');
-      }, 3000);
-      
-      // Reset form
-      this.reset();
-      document.querySelectorAll('.category-option').forEach(opt => opt.classList.remove('selected'));
-      document.getElementById('date').valueAsDate = new Date();
-      
-      // Reset button state
-      submitBtn.classList.remove('loading');
-      submitBtn.disabled = false;
-    });
-
-    // Initialize
-    populateStoreDropdowns();
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>店舗別貸借分析システム</title>
+    <title>店舗別貸借分析システム（Google Sheets API版）</title>
     <style>
         * {
             margin: 0;
@@ -472,9 +472,9 @@
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
                 // ここにあなたのAPIキーを貼り付けてください
-                this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
+                this.apiKey = 'YOUR_API_KEY_HERE';
                 this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
-                this.sheetName = 'データ';
+                this.sheetName = '貸借記録';
                 
                 this.init();
             }
@@ -547,8 +547,26 @@
                 this.showDebugInfo();
 
                 try {
+                    // まず、スプレッドシートの情報を取得してシート名を確認
+                    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}?key=${this.apiKey}`;
+                    
+                    this.debugLog('メタデータ取得 URL', metadataUrl);
+                    
+                    const metadataResponse = await fetch(metadataUrl);
+                    
+                    if (!metadataResponse.ok) {
+                        throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
+                    }
+                    
+                    const metadata = await metadataResponse.json();
+                    this.debugLog('スプレッドシート情報', metadata);
+                    
+                    // 最初のシートの名前を取得
+                    const firstSheetName = metadata.sheets[0].properties.title;
+                    this.debugLog('使用するシート名', firstSheetName);
+                    
                     // Google Sheets API v4 を使用してデータを取得
-                    const range = `${this.sheetName}!A:Z`; // 全列を取得
+                    const range = `${firstSheetName}!A:Z`; // 全列を取得
                     const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
                     
                     this.debugLog('API リクエスト URL', url);

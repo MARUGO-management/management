@@ -526,7 +526,7 @@
         <div class="status-section">
             <h3>📈 システム状態</h3>
             <div id="status-info" class="status-info">
-                設定ファイルを読み込み中...
+                APIキーを入力して接続を開始してください
             </div>
             <button id="debug-btn" class="retry-btn" style="display: none; margin-top: 10px;">
                 🐛 詳細デバッグ情報を表示
@@ -605,7 +605,10 @@
                 this.searchResults = [];
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
-                this.config = null;
+                // ここにあなたのAPIキーを貼り付けてください
+                this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
+                this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
+                this.sheetName = '貸借記録';
                 
                 // パスワード設定（実際の運用では環境変数やサーバーサイドで管理）
                 this.correctPasswords = [
@@ -644,9 +647,14 @@
                 const password = passwordInput.value;
                 const errorDiv = document.getElementById('login-error');
 
+                // デバッグ用：入力されたパスワードとハッシュをコンソールに表示
+                console.log('入力パスワード:', password);
+                
                 // パスワードをSHA-256でハッシュ化
                 const passwordHash = await this.hashPassword(password);
-                
+                console.log('パスワードハッシュ:', passwordHash);
+                console.log('設定済みハッシュ:', this.correctPasswords);
+
                 // 簡単なテスト用：平文パスワードもチェック
                 const validPasswords = ['hello', 'marugo', 'admin'];
                 
@@ -654,10 +662,12 @@
                     sessionStorage.setItem('authenticated', 'true');
                     this.showMainApp();
                     errorDiv.style.display = 'none';
+                    console.log('ログイン成功');
                 } else {
                     errorDiv.style.display = 'block';
                     passwordInput.value = '';
                     passwordInput.focus();
+                    console.log('ログイン失敗');
                 }
             }
 
@@ -686,76 +696,16 @@
                     .join('');
             }
 
-            async loadConfig() {
-                try {
-                    this.log('設定ファイルを読み込み中...', 'loading');
-                    
-                    const response = await fetch('./config.json');
-                    
-                    if (!response.ok) {
-                        throw new Error(`設定ファイルの読み込みに失敗しました: ${response.status}`);
-                    }
-                    
-                    this.config = await response.json();
-                    
-                    // 基本的なバリデーション
-                    if (!this.config.googleSheets || !this.config.googleSheets.apiKey) {
-                        throw new Error('設定ファイルにAPIキーが見つかりません');
-                    }
-                    
-                    this.log('設定ファイルの読み込み完了', 'success');
-                    return true;
-                    
-                } catch (error) {
-                    this.log(`設定エラー: ${error.message}`, 'error');
-                    this.debugLog('設定読み込みエラー', error);
-                    return false;
-                }
-            }
-
             async init() {
                 this.log('システム初期化中...', 'loading');
                 this.setupEventListeners();
                 this.setDefaultDates();
                 
-                // 設定ファイルを読み込み
-                const configLoaded = await this.loadConfig();
-                if (!configLoaded) {
-                    this.log('設定ファイルの読み込みに失敗しました', 'error');
-                    return;
-                }
-                
-                // セキュリティチェック
-                if (!this.validateSecurity()) {
-                    this.log('セキュリティチェックに失敗しました', 'error');
-                    return;
-                }
-                
-                // Google Sheets API に接続
-                await this.connectToGoogleSheets();
-            }
-
-            validateSecurity() {
-                try {
-                    // ドメインチェック（開発環境では無効化）
-                    if (this.config.security && this.config.security.allowedDomains) {
-                        const currentDomain = window.location.hostname;
-                        const allowedDomains = this.config.security.allowedDomains;
-                        
-                        if (this.config.security.environment !== 'development' && 
-                            !allowedDomains.includes(currentDomain)) {
-                            this.debugLog('ドメインチェック失敗', {
-                                current: currentDomain,
-                                allowed: allowedDomains
-                            });
-                            return false;
-                        }
-                    }
-                    
-                    return true;
-                } catch (error) {
-                    this.debugLog('セキュリティバリデーションエラー', error);
-                    return false;
+                // APIキーが設定されている場合は自動接続
+                if (this.apiKey !== 'YOUR_API_KEY_HERE') {
+                    await this.connectToGoogleSheets();
+                } else {
+                    this.log('APIキーを設定してください', 'error');
                 }
             }
 
@@ -805,7 +755,7 @@
             }
 
             async connectToGoogleSheets() {
-                if (!this.config || !this.config.googleSheets.apiKey) {
+                if (!this.apiKey || this.apiKey === 'YOUR_API_KEY_HERE') {
                     this.log('APIキーが設定されていません', 'error');
                     return;
                 }
@@ -814,12 +764,10 @@
                 this.showDebugInfo();
 
                 try {
-                    const { apiKey, spreadsheetId, sheetName } = this.config.googleSheets;
-                    
                     // まず、スプレッドシートの情報を取得してシート名を確認
-                    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}?key=${this.apiKey}`;
                     
-                    this.debugLog('メタデータ取得 URL', metadataUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+                    this.debugLog('メタデータ取得 URL', metadataUrl);
                     
                     const metadataResponse = await fetch(metadataUrl);
                     
@@ -828,20 +776,17 @@
                     }
                     
                     const metadata = await metadataResponse.json();
-                    this.debugLog('スプレッドシート情報', {
-                        title: metadata.properties?.title,
-                        sheets: metadata.sheets?.map(s => s.properties.title)
-                    });
+                    this.debugLog('スプレッドシート情報', metadata);
                     
-                    // 指定されたシート名または最初のシートの名前を取得
-                    const targetSheetName = sheetName || metadata.sheets[0].properties.title;
-                    this.debugLog('使用するシート名', targetSheetName);
+                    // 最初のシートの名前を取得
+                    const firstSheetName = metadata.sheets[0].properties.title;
+                    this.debugLog('使用するシート名', firstSheetName);
                     
                     // Google Sheets API v4 を使用してデータを取得
-                    const range = `${targetSheetName}!A:Z`; // 全列を取得
-                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+                    const range = `${firstSheetName}!A:Z`; // 全列を取得
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
                     
-                    this.debugLog('API リクエスト URL', url.replace(apiKey, 'API_KEY_HIDDEN'));
+                    this.debugLog('API リクエスト URL', url);
                     
                     const response = await fetch(url);
                     
@@ -861,10 +806,7 @@
                     }
                     
                     const data = await response.json();
-                    this.debugLog('取得データ', {
-                        rowCount: data.values?.length || 0,
-                        firstRow: data.values?.[0] || null
-                    });
+                    this.debugLog('取得データ', data);
                     
                     if (!data.values || data.values.length === 0) {
                         throw new Error('スプレッドシートにデータが見つかりません。');

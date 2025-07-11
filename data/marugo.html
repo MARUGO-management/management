@@ -916,18 +916,43 @@
 
             // 店舗名の正規化
             normalizeStoreName(storeName) {
-                if (!storeName) return '';
-                
-                const normalizations = {
-                    'クラウディア２': 'Claudia2',
-                    'クラウディア2': 'Claudia2',
-                    'マルゴ': 'MARUGO',
-                    'マルゴセカンド': 'MARUGO2'
-                };
-                
-                return normalizations[storeName] || storeName;
-            }
-
+    if (!storeName) return '';
+    
+    // まず基本的なクリーニング
+    let normalized = storeName.trim().toUpperCase();
+    
+    const normalizations = {
+        'クラウディア２': 'Claudia2',
+        'クラウディア2': 'Claudia2',
+        'マルゴ': 'MARUGO',
+        'マルゴセカンド': 'MARUGO2',
+        
+        // BISTRO CAVA系の正規化を追加
+        'BISTRO CAVA,CAVA': 'BISTRO CAVACAVA',
+        'BISTRO CAVA CAVA': 'BISTRO CAVACAVA',
+        'BISTROCAVACAVA': 'BISTRO CAVACAVA',
+        'BISTRO CAVA・CAVA': 'BISTRO CAVACAVA',
+        
+        // その他の正規化ルール
+        'MARUGO GRANDE': 'MARUGO GRANDE',
+        'MARUGO MARUNOUCHI': 'MARUGO MARUNOUCHI',
+        'MARUGO YOTSUYA': 'MARUGO YOTSUYA',
+        'MARUGO-D': 'MARUGO-D',
+        'MARUGO-OTTO': 'MARUGO-OTTO'
+    };
+    
+    // 完全一致での正規化
+    if (normalizations[normalized]) {
+        return normalizations[normalized];
+    }
+    
+    // BISTRO CAVA系の部分的正規化
+    if (normalized.includes('BISTRO') && normalized.includes('CAVA')) {
+        return 'BISTRO CAVACAVA';
+    }
+    
+    return storeName; // 元の形式を保持
+}
             extractDateFromDateTime(dateTimeStr) {
                 if (!dateTimeStr) return '';
                 

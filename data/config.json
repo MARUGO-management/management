@@ -1,12 +1,12 @@
 {
     "googleSheets": {
         "apiKey": "AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE",
-        "spreadsheetId": "YOUR_SPREADSHEET_ID_HERE",
+        "spreadsheetId": "1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8",
         "sheetName": "貸借記録"
     },
     "security": {
         "allowedDomains": ["localhost", "your-domain.com"],
-        "environment": "development"
+        "environment": "production"
     },
     "_instructions": {
         "setup": [

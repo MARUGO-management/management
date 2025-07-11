@@ -921,6 +921,12 @@
     // まず基本的なクリーニング
     let normalized = storeName.trim().toUpperCase();
     
+    normalizeStoreName(storeName) {
+    if (!storeName) return '';
+    
+    // まず基本的なクリーニング
+    let normalized = storeName.trim().toUpperCase();
+    
     const normalizations = {
         'クラウディア２': 'Claudia2',
         'クラウディア2': 'Claudia2',
@@ -946,12 +952,15 @@
         return normalizations[normalized];
     }
     
+    // 👇 ここに挿入！
     // BISTRO CAVA系の部分的正規化
     if (normalized.includes('BISTRO') && normalized.includes('CAVA')) {
         return 'BISTRO CAVACAVA';
     }
+    // 👆 ここまで
     
     return storeName; // 元の形式を保持
+}
 }
             extractDateFromDateTime(dateTimeStr) {
                 if (!dateTimeStr) return '';

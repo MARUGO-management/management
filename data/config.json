@@ -1,6 +1,6 @@
 {
     "googleSheets": {
-        "apiKey": "YOUR_GOOGLE_SHEETS_API_KEY_HERE",
+        "apiKey": "AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE",
         "spreadsheetId": "YOUR_SPREADSHEET_ID_HERE",
         "sheetName": "貸借記録"
     },

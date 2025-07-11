@@ -9,7 +9,7 @@
         "allowedDomains": [
             "localhost",
             "127.0.0.1", 
-            "yoshito1974.github.io"
+            "marugo-management.github.io"
         ],
         "environment": "development"
     }

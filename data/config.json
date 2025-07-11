@@ -1,0 +1,21 @@
+{
+    "googleSheets": {
+        "apiKey": "YOUR_GOOGLE_SHEETS_API_KEY_HERE",
+        "spreadsheetId": "YOUR_SPREADSHEET_ID_HERE",
+        "sheetName": "貸借記録"
+    },
+    "security": {
+        "allowedDomains": ["localhost", "your-domain.com"],
+        "environment": "development"
+    },
+    "_instructions": {
+        "setup": [
+            "1. このファイルを config.json にコピーしてください",
+            "2. YOUR_GOOGLE_SHEETS_API_KEY_HERE を実際のAPIキーに置き換えてください",
+            "3. YOUR_SPREADSHEET_ID_HERE を実際のスプレッドシートIDに置き換えてください",
+            "4. 本番環境では environment を 'production' に変更してください",
+            "5. allowedDomains に実際のドメイン名を設定してください"
+        ],
+        "security_note": "config.json は .gitignore に含まれているため、Gitにコミットされません"
+    }
+}

@@ -231,6 +231,12 @@
             align-items: end;
         }
 
+        .button-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
         .form-group label {
             font-weight: 600;
             color: #333;
@@ -269,6 +275,23 @@
         }
 
         .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .all-data-btn {
+            background: linear-gradient(135deg, #7a7a7a 0%, #5a5a5a 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            height: fit-content;
+        }
+
+        .all-data-btn:hover {
             transform: translateY(-2px);
         }
 
@@ -533,6 +556,16 @@
             .container {
                 padding: 15px;
             }
+
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-btn,
+            .all-data-btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -607,7 +640,10 @@
                 </div>
 
                 <div class="form-group">
-                    <button type="submit" class="search-btn">🔍 検索実行</button>
+                    <div class="button-group">
+                        <button type="submit" class="search-btn">🔍 検索実行</button>
+                        <button type="button" class="all-data-btn" id="all-data-btn">📋 全データを表示</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -633,6 +669,8 @@
                                 <th class="sortable" onclick="sortTable(4)">カテゴリー</th>
                                 <th class="sortable" onclick="sortTable(5)">金額</th>
                                 <th class="sortable" onclick="sortTable(6)">入力者</th>
+                                <th class="sortable" onclick="sortTable(7)">貸主</th>
+                                <th class="sortable" onclick="sortTable(8)">借主</th>
                             </tr>
                         </thead>
                         <tbody id="details-table">
@@ -1133,10 +1171,15 @@
             setupEventListeners() {
                 const searchForm = document.getElementById('search-form');
                 const exportBtn = document.getElementById('export-btn');
+                const allDataBtn = document.getElementById('all-data-btn');
 
                 searchForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.performSearch();
+                });
+
+                allDataBtn.addEventListener('click', () => {
+                    this.showAllData();
                 });
 
                 exportBtn.addEventListener('click', () => {
@@ -1172,6 +1215,24 @@
                 this.displayResults(storeName);
             }
 
+            showAllData() {
+                // 期間フィルタは適用するが店舗フィルタは適用しない
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+
+                if (!startDate || !endDate) {
+                    this.log('期間を入力してください', 'error');
+                    return;
+                }
+
+                this.searchResults = this.data.filter(row => {
+                    return row.date >= startDate && row.date <= endDate;
+                });
+
+                this.log(`全データ表示: ${this.searchResults.length}件の取引が見つかりました`, 'success');
+                this.displayAllDataResults();
+            }
+
             displayResults(storeName) {
                 const resultsSection = document.getElementById('results-section');
                 resultsSection.style.display = 'block';
@@ -1185,6 +1246,145 @@
                 headers.forEach(header => {
                     header.classList.remove('sort-asc', 'sort-desc');
                 });
+            }
+
+            displayAllDataResults() {
+                const resultsSection = document.getElementById('results-section');
+                resultsSection.style.display = 'block';
+
+                this.updateAllDataSummaryCards();
+                this.updateAllDataDetailsTable();
+                
+                // ソート状態をリセット
+                sortDirection = {};
+                const headers = document.querySelectorAll("#results-table th");
+                headers.forEach(header => {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                });
+            }
+
+            updateAllDataSummaryCards() {
+                const summaryCards = document.getElementById('summary-cards');
+                
+                // カテゴリー別集計用オブジェクト
+                const totalByCategory = { '食材': 0, '飲料': 0, 'その他': 0 };
+                const countByCategory = { '食材': 0, '飲料': 0, 'その他': 0 };
+                const storeTransactions = {};
+                
+                let totalAmount = 0;
+                
+                this.searchResults.forEach(row => {
+                    // カテゴリーの正規化
+                    let category = row.category || 'その他';
+                    const item = (row.item || '').toLowerCase();
+                    
+                    // 品目から飲料を判定
+                    if (category.includes('飲料') || category.includes('ドリンク') || category.includes('酒') ||
+                        item.includes('酒') || item.includes('ビール') || item.includes('ワイン') || 
+                        item.includes('日本酒') || item.includes('焼酎') || item.includes('ウイスキー') ||
+                        item.includes('カクテル') || item.includes('チューハイ') || item.includes('サワー') ||
+                        item.includes('ジュース') || item.includes('コーヒー') || item.includes('茶') ||
+                        item.includes('水') || item.includes('ソーダ') || item.includes('コーラ')) {
+                        category = '飲料';
+                    } 
+                    // 食材の判定
+                    else if (category.includes('食材') || category.includes('食品') ||
+                        item.includes('肉') || item.includes('魚') || item.includes('野菜') ||
+                        item.includes('米') || item.includes('パン') || item.includes('麺') ||
+                        item.includes('調味料') || item.includes('油') || item.includes('塩') ||
+                        item.includes('砂糖') || item.includes('醤油') || item.includes('味噌') ||
+                        item.includes('だし') || item.includes('スパイス') || item.includes('香辛料') ||
+                        item.includes('人参') || item.includes('玉ねぎ') || item.includes('じゃがいも') ||
+                        item.includes('アサリ') || item.includes('鮭') || item.includes('麻') || 
+                        item.includes('オリーブオイル')) {
+                        category = '食材';
+                    } 
+                    // その他
+                    else {
+                        category = 'その他';
+                    }
+                    
+                    totalAmount += row.amount;
+                    totalByCategory[category] += row.amount;
+                    countByCategory[category]++;
+
+                    // 店舗別統計
+                    if (!storeTransactions[row.lender]) {
+                        storeTransactions[row.lender] = { lent: 0, borrowed: 0, count: 0 };
+                    }
+                    if (!storeTransactions[row.borrower]) {
+                        storeTransactions[row.borrower] = { lent: 0, borrowed: 0, count: 0 };
+                    }
+                    
+                    storeTransactions[row.lender].lent += row.amount;
+                    storeTransactions[row.lender].count++;
+                    storeTransactions[row.borrower].borrowed += row.amount;
+                    storeTransactions[row.borrower].count++;
+                });
+
+                // 最も活発な店舗（取引件数ベース）
+                const mostActiveStore = Object.entries(storeTransactions)
+                    .sort((a, b) => b[1].count - a[1].count)[0];
+
+                // 内訳表示用のヘルパー関数
+                const createBreakdown = (categoryData, showCounts = false, countData = null) => {
+                    const categories = ['食材', '飲料', 'その他'];
+                    return categories
+                        .filter(category => categoryData[category] !== 0)
+                        .map(category => {
+                            const amount = categoryData[category];
+                            const countText = showCounts && countData && countData[category] > 0
+                                ? ` (${countData[category]}件)` 
+                                : '';
+                            return `<span class="breakdown-item">${category}: ¥${amount.toLocaleString()}${countText}</span>`;
+                        })
+                        .join('<br>');
+                };
+
+                summaryCards.innerHTML = `
+                    <div class="summary-card neutral">
+                        <h3>総取引金額</h3>
+                        <div class="value">¥${totalAmount.toLocaleString()}</div>
+                        <p>${this.searchResults.length}件</p>
+                        <div class="breakdown">
+                            ${createBreakdown(totalByCategory, true, countByCategory)}
+                        </div>
+                    </div>
+                    <div class="summary-card positive">
+                        <h3>取引店舗数</h3>
+                        <div class="value">${Object.keys(storeTransactions).length}</div>
+                        <p>店舗</p>
+                        <div class="breakdown">
+                            最多取引: ${mostActiveStore ? mostActiveStore[0] : 'なし'}<br>
+                            ${mostActiveStore ? `(${mostActiveStore[1].count}件)` : ''}
+                        </div>
+                    </div>
+                    <div class="summary-card neutral">
+                        <h3>平均取引額</h3>
+                        <div class="value">¥${this.searchResults.length > 0 ? Math.round(totalAmount / this.searchResults.length).toLocaleString() : '0'}</div>
+                        <p>1件あたり</p>
+                        <div class="breakdown">
+                            ${(() => {
+                                const categories = ['食材', '飲料', 'その他'];
+                                return categories
+                                    .filter(category => countByCategory[category] > 0)
+                                    .map(category => {
+                                        const avg = Math.round(totalByCategory[category] / countByCategory[category]);
+                                        return `<span class="breakdown-item">${category}: ¥${avg.toLocaleString()}</span>`;
+                                    })
+                                    .join('<br>');
+                            })()}
+                        </div>
+                    </div>
+                    <div class="summary-card negative">
+                        <h3>期間</h3>
+                        <div class="value" style="font-size: 1.2rem;">${document.getElementById('start-date').value}</div>
+                        <div class="value" style="font-size: 1.2rem;">〜${document.getElementById('end-date').value}</div>
+                        <div class="breakdown">
+                            全店舗データ
+                        </div>
+                    </div>
+                `;
             }
 
             updateSummaryCards(storeName) {
@@ -1315,7 +1515,7 @@
                 const detailsTable = document.getElementById('details-table');
                 
                 if (this.searchResults.length === 0) {
-                    detailsTable.innerHTML = '<tr><td colspan="7" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    detailsTable.innerHTML = '<tr><td colspan="9" class="no-results">検索条件に該当するデータがありません</td></tr>';
                     return;
                 }
 
@@ -1335,6 +1535,40 @@
                             <td>${row.category}</td>
                             <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
                             <td>${row.name}</td>
+                            <td>${row.lender}</td>
+                            <td>${row.borrower}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // テーブルデータを保存（ソート用）
+                currentTableData = this.searchResults;
+            }
+
+            updateAllDataDetailsTable() {
+                const detailsTable = document.getElementById('details-table');
+                
+                if (this.searchResults.length === 0) {
+                    detailsTable.innerHTML = '<tr><td colspan="9" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    return;
+                }
+
+                // ヘッダーとサブタイトルを更新
+                document.getElementById('details-title').textContent = '全取引詳細';
+                document.getElementById('details-subtitle').textContent = '期間内の全取引データ（各列をクリックでソート）';
+
+                detailsTable.innerHTML = this.searchResults.map(row => {
+                    return `
+                        <tr>
+                            <td>${row.date}</td>
+                            <td><span class="type-tag type-貸出">取引</span></td>
+                            <td>-</td>
+                            <td>${row.item}</td>
+                            <td>${row.category}</td>
+                            <td class="amount">¥${row.amount.toLocaleString()}</td>
+                            <td>${row.name}</td>
+                            <td>${row.lender}</td>
+                            <td>${row.borrower}</td>
                         </tr>
                     `;
                 }).join('');

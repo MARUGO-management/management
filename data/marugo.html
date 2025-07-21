@@ -658,6 +658,9 @@
                 <button id="test-data-btn" class="retry-btn" style="display: none; margin-top: 10px; margin-left: 10px;">
                     🧪 テストデータで動作確認
                 </button>
+                <button id="reset-btn" class="retry-btn" style="display: none; margin-top: 10px; margin-left: 10px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                    🔄 システムリセット
+                </button>
             </div>
 
             <!-- デバッグセクション -->
@@ -862,24 +865,76 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 
-                // メインアプリを初期化
-                await this.init();
+                // すぐにテストモードボタンを表示（緊急時対応）
+                document.getElementById('test-data-btn').style.display = 'inline-block';
+                document.getElementById('test-data-btn').onclick = () => this.loadTestData();
+                document.getElementById('reset-btn').style.display = 'inline-block';
+                document.getElementById('reset-btn').onclick = () => this.resetSystem();
+                
+                // 初期化のタイムアウト設定（15秒に短縮）
+                const initTimeout = setTimeout(() => {
+                    this.log('初期化がタイムアウトしました。🧪テストデータまたは🔄リセットをお試しください。', 'error');
+                }, 15000);
+                
+                try {
+                    // メインアプリを初期化
+                    await this.init();
+                    clearTimeout(initTimeout);
+                } catch (error) {
+                    clearTimeout(initTimeout);
+                    this.log('初期化に失敗しました。🧪テストデータまたは🔄リセットをお試しください。', 'error');
+                }
             }
 
             async init() {
-                this.log('システム初期化中...', 'loading');
-                this.setupEventListeners();
-                this.setDefaultDates();
-                
-                // デバッグボタンを表示
-                this.showDebugButton();
-                
-                // APIキーが設定されている場合は自動接続
-                if (this.apiKey !== 'YOUR_API_KEY_HERE') {
-                    await this.connectToGoogleSheets();
-                } else {
-                    this.log('APIキーを設定してください', 'error');
+                try {
+                    this.log('システム初期化中...', 'loading');
+                    this.debugLog('システム初期化開始');
+                    
+                    // 基本設定
+                    this.setupEventListeners();
+                    this.setDefaultDates();
+                    this.showDebugButton();
+                    
+                    // 初期化開始時点で緊急ボタンを表示
                     this.showTestDataButton();
+                    
+                    this.debugLog('基本設定完了');
+                    this.log('基本設定完了、APIに接続中...', 'loading');
+                    
+                    // APIキーが設定されている場合は自動接続（タイムアウト付き）
+                    if (this.apiKey !== 'YOUR_API_KEY_HERE') {
+                        try {
+                            await this.connectToGoogleSheetsWithTimeout();
+                        } catch (error) {
+                            this.debugLog('API接続失敗、テストモードに切り替え', error, 'warning');
+                            this.log('API接続に失敗しました。テストモードを使用してください。', 'error');
+                        }
+                    } else {
+                        this.log('APIキーを設定してください', 'error');
+                    }
+                    
+                    this.debugLog('システム初期化完了');
+                } catch (error) {
+                    this.debugLog('システム初期化エラー', error, 'error');
+                    this.log('初期化エラーが発生しました。テストモードをお試しください。', 'error');
+                }
+            }
+
+            async connectToGoogleSheetsWithTimeout() {
+                const timeout = 10000; // 10秒タイムアウト
+                
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('接続タイムアウト（10秒）')), timeout);
+                });
+                
+                const connectPromise = this.connectToGoogleSheets();
+                
+                try {
+                    await Promise.race([connectPromise, timeoutPromise]);
+                } catch (error) {
+                    this.debugLog('接続タイムアウトまたはエラー', error, 'error');
+                    throw error;
                 }
             }
 
@@ -942,67 +997,117 @@
 
             showTestDataButton() {
                 const testBtn = document.getElementById('test-data-btn');
+                const resetBtn = document.getElementById('reset-btn');
+                
                 testBtn.style.display = 'inline-block';
                 testBtn.onclick = () => {
                     this.loadTestData();
                 };
+                
+                resetBtn.style.display = 'inline-block';
+                resetBtn.onclick = () => {
+                    this.resetSystem();
+                };
+            }
+
+            resetSystem() {
+                this.debugLog('システムリセット実行');
+                
+                // データをクリア
+                this.data = [];
+                this.searchResults = [];
+                this.stores.clear();
+                this.debugLog = [];
+                
+                // UIをリセット
+                document.getElementById('search-section').style.display = 'none';
+                document.getElementById('results-section').style.display = 'none';
+                document.getElementById('debug-section').style.display = 'none';
+                
+                // ステータスをリセット
+                this.log('システムをリセットしました。再初期化します...', 'info');
+                
+                // 少し待ってから再初期化
+                setTimeout(() => {
+                    this.init();
+                }, 1000);
             }
 
             loadTestData() {
-                this.debugLog('テストデータ読み込み開始');
-                
-                // テストデータ作成
-                const testData = [
-                    {
-                        date: '2024-01-15',
-                        name: 'テスト太郎',
-                        lender: 'MARUGO',
-                        borrower: 'Claudia2',
-                        category: '食材',
-                        item: 'アサリ',
-                        amount: 5000,
-                        inputDate: '2024-01-15 10:00:00'
-                    },
-                    {
-                        date: '2024-01-16',
-                        name: 'テスト花子',
-                        lender: 'Claudia2',
-                        borrower: 'MARUGO',
-                        category: '飲料',
-                        item: '日本酒',
-                        amount: 8000,
-                        inputDate: '2024-01-16 11:00:00'
-                    },
-                    {
-                        date: '2024-01-17',
-                        name: 'テスト次郎',
-                        lender: 'BISTRO CAVACAVA',
-                        borrower: 'MARUGO',
-                        category: '食材',
-                        item: 'オリーブオイル',
-                        amount: 3000,
-                        inputDate: '2024-01-17 12:00:00'
-                    }
-                ];
+                try {
+                    this.log('テストデータ読み込み中...', 'loading');
+                    this.debugLog('テストデータ読み込み開始');
+                    
+                    // テストデータ作成
+                    const testData = [
+                        {
+                            date: '2024-01-15',
+                            name: 'テスト太郎',
+                            lender: 'MARUGO',
+                            borrower: 'Claudia2',
+                            category: '食材',
+                            item: 'アサリ',
+                            amount: 5000,
+                            inputDate: '2024-01-15 10:00:00'
+                        },
+                        {
+                            date: '2024-01-16',
+                            name: 'テスト花子',
+                            lender: 'Claudia2',
+                            borrower: 'MARUGO',
+                            category: '飲料',
+                            item: '日本酒',
+                            amount: 8000,
+                            inputDate: '2024-01-16 11:00:00'
+                        },
+                        {
+                            date: '2024-01-17',
+                            name: 'テスト次郎',
+                            lender: 'BISTRO CAVACAVA',
+                            borrower: 'MARUGO',
+                            category: '食材',
+                            item: 'オリーブオイル',
+                            amount: 3000,
+                            inputDate: '2024-01-17 12:00:00'
+                        },
+                        {
+                            date: '2024-01-18',
+                            name: 'テスト三郎',
+                            lender: 'MARUGO',
+                            borrower: 'BISTRO CAVACAVA',
+                            category: 'その他',
+                            item: '調味料',
+                            amount: 2000,
+                            inputDate: '2024-01-18 13:00:00'
+                        }
+                    ];
 
-                this.data = testData;
-                this.searchResults = [...testData];
+                    this.log('テストデータ処理中...', 'loading');
+                    this.data = testData;
+                    this.searchResults = [...testData];
 
-                // 店舗名を収集
-                this.stores.clear();
-                testData.forEach(row => {
-                    if (row.lender) this.stores.add(row.lender);
-                    if (row.borrower) this.stores.add(row.borrower);
-                });
+                    // 店舗名を収集
+                    this.stores.clear();
+                    testData.forEach(row => {
+                        if (row.lender) this.stores.add(row.lender);
+                        if (row.borrower) this.stores.add(row.borrower);
+                    });
 
-                this.debugLog('テストデータ読み込み完了', {
-                    dataCount: this.data.length,
-                    stores: Array.from(this.stores)
-                });
+                    this.debugLog('テストデータ読み込み完了', {
+                        dataCount: this.data.length,
+                        stores: Array.from(this.stores)
+                    });
 
-                this.populateStoreDropdown();
-                this.log(`テストデータ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
-                document.getElementById('search-section').style.display = 'block';
+                    this.log('UI更新中...', 'loading');
+                    this.populateStoreDropdown();
+                    
+                    this.log(`テストデータ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
+                    document.getElementById('search-section').style.display = 'block';
+                    
+                } catch (error) {
+                    this.debugLog('テストデータ読み込みエラー', error, 'error');
+                    this.log('テストデータの読み込みに失敗しました', 'error');
+                }
             }
 
             log(message, type = 'info') {
@@ -1027,69 +1132,83 @@
                     return;
                 }
 
-                this.log('Google Sheets API に接続中...', 'loading');
-
                 try {
-                    // まず、スプレッドシートの情報を取得してシート名を確認
+                    this.log('Google Sheets API に接続中...', 'loading');
+                    this.debugLog('API接続開始');
+
+                    // Step 1: メタデータ取得
+                    this.log('スプレッドシート情報を取得中...', 'loading');
                     const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}?key=${this.apiKey}`;
-                    
                     this.debugLog('メタデータ取得 URL', metadataUrl);
                     
                     const metadataResponse = await fetch(metadataUrl);
-                    
-                    if (!metadataResponse.ok) {
-                        throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
-                    }
-                    
-                    const metadata = await metadataResponse.json();
-                    this.debugLog('スプレッドシート情報', metadata);
-                    
-                    // 最初のシートの名前を取得
-                    const firstSheetName = metadata.sheets[0].properties.title;
-                    this.debugLog('使用するシート名', firstSheetName);
-                    
-                    // Google Sheets API v4 を使用してデータを取得
-                    const range = `${firstSheetName}!A:Z`; // 全列を取得
-                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
-                    
-                    this.debugLog('API リクエスト URL', url);
-                    
-                    const response = await fetch(url);
-                    
-                    this.debugLog('API レスポンス', {
-                        status: response.status,
-                        statusText: response.statusText
+                    this.debugLog('メタデータレスポンス', {
+                        status: metadataResponse.status,
+                        statusText: metadataResponse.statusText
                     });
                     
-                    if (!response.ok) {
-                        if (response.status === 403) {
-                            throw new Error('APIキーが無効または権限が不足しています。APIキーとスプレッドシートの共有設定を確認してください。');
-                        } else if (response.status === 400) {
-                            throw new Error('スプレッドシートIDまたはシート名が正しくありません。');
+                    if (!metadataResponse.ok) {
+                        if (metadataResponse.status === 403) {
+                            throw new Error('APIキーが無効または権限が不足しています');
+                        } else if (metadataResponse.status === 404) {
+                            throw new Error('スプレッドシートが見つかりません');
                         } else {
-                            throw new Error(`API エラー: ${response.status} ${response.statusText}`);
+                            throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
                         }
                     }
                     
-                    const data = await response.json();
-                    this.debugLog('取得データ', data);
+                    const metadata = await metadataResponse.json();
+                    this.debugLog('スプレッドシート情報取得成功', metadata);
                     
-                    if (!data.values || data.values.length === 0) {
-                        throw new Error('スプレッドシートにデータが見つかりません。');
+                    if (!metadata.sheets || metadata.sheets.length === 0) {
+                        throw new Error('スプレッドシートにシートが見つかりません');
                     }
                     
-                    this.log('データ取得成功', 'success');
+                    const firstSheetName = metadata.sheets[0].properties.title;
+                    this.debugLog('使用するシート名', firstSheetName);
+                    
+                    // Step 2: データ取得
+                    this.log('データを取得中...', 'loading');
+                    const range = `${firstSheetName}!A:Z`;
+                    const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
+                    this.debugLog('データ取得 URL', dataUrl);
+                    
+                    const dataResponse = await fetch(dataUrl);
+                    this.debugLog('データレスポンス', {
+                        status: dataResponse.status,
+                        statusText: dataResponse.statusText
+                    });
+                    
+                    if (!dataResponse.ok) {
+                        throw new Error(`データ取得失敗: ${dataResponse.status} ${dataResponse.statusText}`);
+                    }
+                    
+                    const data = await dataResponse.json();
+                    this.debugLog('生データ取得成功', {
+                        rowCount: data.values ? data.values.length : 0,
+                        hasData: !!data.values
+                    });
+                    
+                    if (!data.values || data.values.length === 0) {
+                        throw new Error('スプレッドシートにデータが見つかりません');
+                    }
+                    
+                    // Step 3: データ処理
+                    this.log('データを処理中...', 'loading');
                     await this.processSheetData(data.values);
+                    
+                    // Step 4: UI更新
+                    this.log('UI更新中...', 'loading');
                     this.populateStoreDropdown();
                     
                     this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
-                    
                     document.getElementById('search-section').style.display = 'block';
                     
                 } catch (error) {
-                    this.log(`接続エラー: ${error.message}`, 'error');
                     this.debugLog('接続エラー詳細', error, 'error');
+                    this.log(`接続エラー: ${error.message}`, 'error');
                     this.showTestDataButton();
+                    throw error; // 上位のエラーハンドリングに渡す
                 }
             }
 

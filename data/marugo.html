@@ -931,7 +931,7 @@
                 // 列名とマッピング推奨を詳細表示
                 let columnMappingInfo = '\n\n📋 現在の列名とマッピング推奨:';
                 headers.forEach((header, index) => {
-                    const suggestion = analyzeColumnName(header);
+                    const suggestion = getColumnTypeSuggestion(header);
                     columnMappingInfo += `\n列${index + 1}: "${header}" → ${suggestion}`;
                 });
                 
@@ -1176,18 +1176,6 @@
                 const sampleData = await sampleResponse.json();
                 addDebugLog('サンプルデータ:', sampleData);
                 
-                // 列名分析とマッピング推奨
-                let columnAnalysis = '';
-                if (sampleData.values && sampleData.values.length > 0) {
-                    const headers = sampleData.values[0];
-                    
-                    columnAnalysis = '<br><strong>📋 列名分析とマッピング推奨:</strong><br>';
-                    headers.forEach((header, index) => {
-                        const suggestions = getColumnTypeSuggestion(header);
-                        columnAnalysis += `列${index + 1}: "${header}" → ${suggestions}<br>`;
-                    });
-                }
-                
                 // 詳細情報を画面に表示
                 let detailsHTML = `
                     <strong>📋 スプレッドシート名:</strong> ${spreadsheetInfo.title}<br>
@@ -1208,7 +1196,16 @@
                     sampleData.values.slice(0, 5).forEach((row, index) => {
                         detailsHTML += `行${index + 1}: [${row.join(', ')}]<br>`;
                     });
-                    detailsHTML += columnAnalysis;
+                    
+                    // 列名分析を追加
+                    if (sampleData.values.length > 0) {
+                        const headers = sampleData.values[0];
+                        detailsHTML += '<br><strong>📋 列名分析とマッピング推奨:</strong><br>';
+                        headers.forEach((header, index) => {
+                            const suggestion = getColumnTypeSuggestion(header);
+                            detailsHTML += `列${index + 1}: "${header}" → ${suggestion}<br>`;
+                        });
+                    }
                 } else {
                     detailsHTML += '⚠️ データが見つかりません<br>';
                 }

@@ -880,38 +880,38 @@
                 return -1;
             };
 
-            // より多くの別名パターンを追加
+            // より多くの別名パターンを追加（元のシステム設計に基づく）
             const dateIndex = getColumnIndex([
-                '日付', 'date', '取引日', '›', 'timestamp', 'タイムスタンプ',
+                '›', '日付', 'date', '取引日', 'timestamp', 'タイムスタンプ',
                 '年月日', 'ひづけ', 'Date', 'DATE', '取引日付'
             ]);
             const nameIndex = getColumnIndex([
                 '名前', 'name', '取引名', '入力者名', '入力者', 'Name', 'NAME',
-                '担当者', '記録者', '登録者', 'ユーザー名', 'user'
+                '担当者', '記録者', '登録者', 'ユーザー名', 'user', 'テキスト4'
             ]);
             const lenderIndex = getColumnIndex([
                 '貸主', 'lender', '貸し手', '貸出店舗', 'Lender', 'LENDER',
-                '貸出者', '貸す側', '貸出', '貸与者', 'from', 'sender'
+                '貸出者', '貸す側', '貸出', '貸与者', 'from', 'sender', 'テキスト1'
             ]);
             const borrowerIndex = getColumnIndex([
                 '借主', 'borrower', '借り手', '借入店舗', 'Borrower', 'BORROWER',
-                '借入者', '借りる側', '借入', '借用者', 'to', 'receiver'
+                '借入者', '借りる側', '借入', '借用者', 'to', 'receiver', 'テキスト2'
             ]);
             const categoryIndex = getColumnIndex([
                 'カテゴリー', 'category', '分類', 'カテゴリ', 'Category', 'CATEGORY',
-                '種類', '区分', 'type', 'TYPE', 'ジャンル'
+                '種類', '区分', 'type', 'TYPE', 'ジャンル', 'テキスト5'
             ]);
             const itemIndex = getColumnIndex([
                 '品目', 'item', '商品', '商品名', '内容', 'Item', 'ITEM',
-                '物品', '品名', '項目', 'product', '詳細'
+                '物品', '品名', '項目', 'product', '詳細', 'テキスト3'
             ]);
             const amountIndex = getColumnIndex([
                 '金額', 'amount', '価格', '値段', '料金', 'Amount', 'AMOUNT',
-                'きんがく', 'price', 'value', '合計', 'total', '円'
+                'きんがく', 'price', 'value', '合計', 'total', '円', '数値'
             ]);
             const inputDateIndex = getColumnIndex([
                 '入力日時', 'inputDate', '登録日時', '作成日時', 'created',
-                '入力日', '登録日', 'timestamp'
+                '入力日', '登録日', 'timestamp', 'テキスト6'
             ]);
 
             // 必須フィールドチェック

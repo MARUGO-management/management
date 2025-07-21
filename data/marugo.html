@@ -1216,26 +1216,20 @@
             }
 
             showAllData() {
-                // 期間フィルタは適用するが店舗フィルタは適用しない
-                const startDate = document.getElementById('start-date').value;
-                const endDate = document.getElementById('end-date').value;
+                // 真の全データ表示（期間フィルタも適用しない）
+                this.searchResults = [...this.data]; // 全データをコピー
 
-                if (!startDate || !endDate) {
-                    this.log('期間を入力してください', 'error');
-                    return;
-                }
-
-                this.searchResults = this.data.filter(row => {
-                    return row.date >= startDate && row.date <= endDate;
-                });
-
-                this.log(`全データ表示: ${this.searchResults.length}件の取引が見つかりました`, 'success');
+                this.log(`全データ表示: ${this.searchResults.length}件の取引を表示中`, 'success');
                 this.displayAllDataResults();
             }
 
             displayResults(storeName) {
                 const resultsSection = document.getElementById('results-section');
                 resultsSection.style.display = 'block';
+
+                // ヘッダーとサブタイトルを店舗検索用に設定
+                document.getElementById('details-title').textContent = '取引詳細';
+                document.getElementById('details-subtitle').textContent = '期間内の全取引データ（各列をクリックでソート）';
 
                 this.updateSummaryCards(storeName);
                 this.updateDetailsTable();
@@ -1377,11 +1371,11 @@
                         </div>
                     </div>
                     <div class="summary-card negative">
-                        <h3>期間</h3>
-                        <div class="value" style="font-size: 1.2rem;">${document.getElementById('start-date').value}</div>
-                        <div class="value" style="font-size: 1.2rem;">〜${document.getElementById('end-date').value}</div>
+                        <h3>データ範囲</h3>
+                        <div class="value" style="font-size: 1.2rem;">全期間</div>
+                        <div class="value" style="font-size: 1.2rem;">全店舗</div>
                         <div class="breakdown">
-                            全店舗データ
+                            完全なデータセット
                         </div>
                     </div>
                 `;
@@ -1555,7 +1549,7 @@
 
                 // ヘッダーとサブタイトルを更新
                 document.getElementById('details-title').textContent = '全取引詳細';
-                document.getElementById('details-subtitle').textContent = '期間内の全取引データ（各列をクリックでソート）';
+                document.getElementById('details-subtitle').textContent = '全期間・全店舗の取引データ（各列をクリックでソート）';
 
                 detailsTable.innerHTML = this.searchResults.map(row => {
                     return `

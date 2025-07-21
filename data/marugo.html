@@ -1183,7 +1183,7 @@
                     
                     columnAnalysis = '<br><strong>📋 列名分析とマッピング推奨:</strong><br>';
                     headers.forEach((header, index) => {
-                        const suggestions = analyzeColumnName(header);
+                        const suggestions = getColumnTypeSuggestion(header);
                         columnAnalysis += `列${index + 1}: "${header}" → ${suggestions}<br>`;
                     });
                 }

@@ -26,60 +26,6 @@ function populateShops() {
   });
 }
 
-// LIFF初期化
-async function initLiff() {
-  // LIFF SDKが利用可能かチェック
-  if (typeof liff === 'undefined') {
-    console.warn('LIFF SDK not available - running in standalone mode');
-    return;
-  }
-
-  try {
-    await liff.init({ liffId: "2007681083-B3Z2RkAv" });
-
-    if (!liff.isLoggedIn()) {
-      // LINE環境外では自動ログインを試行しない
-      if (liff.isInClient()) {
-        liff.login();
-      } else {
-        console.log('LINE環境外で実行中 - ログインをスキップ');
-      }
-      return;
-    }
-
-    const profile = await liff.getProfile();
-    window.userProfile = {
-      displayName: profile.displayName,
-      userId: profile.userId
-    };
-
-    // 自動補完 - ユーザー名に一致する店舗を借主に設定
-    const borrowerSelect = document.getElementById("borrower");
-    for (let option of borrowerSelect.options) {
-      if (option.value.includes(profile.displayName)) {
-        borrowerSelect.value = option.value;
-        break;
-      }
-    }
-
-    console.log('LIFF初期化成功:', profile.displayName);
-  } catch (error) {
-    console.error('LIFF初期化エラー:', error);
-
-    // 具体的なエラーメッセージ
-    if (error.code === 'INIT_FAILED') {
-      console.error('LIFF ID が無効または設定に問題があります');
-    } else if (error.code === 'FORBIDDEN') {
-      console.error('このLIFFアプリへのアクセスが拒否されました');
-    } else if (error.code === 'UNAUTHORIZED') {
-      console.error('認証に失敗しました');
-    }
-
-    // LIFF環境外でも動作するように継続
-    console.log('LIFF無しで動作を継続します');
-  }
-}
-
 // DOM要素の初期化
 function initializeElements() {
   // 今日の日付を自動設定
@@ -141,8 +87,8 @@ function initializeElements() {
         category: document.getElementById("category").value,
         item: document.getElementById("item").value,
         amount: normalizedAmount,
-        displayName: window.userProfile?.displayName || "",
-        userId: window.userProfile?.userId || "",
+        displayName: "",
+        userId: "",
         userAgent: userAgent
       };
 
@@ -173,17 +119,6 @@ function initializeElements() {
         form.reset();
         categoryOptions.forEach(opt => opt.classList.remove('selected'));
         document.getElementById('date').valueAsDate = new Date();
-
-        // LIFFウィンドウを閉じる（LINEアプリ内の場合のみ）
-        if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-          setTimeout(() => {
-            try {
-              liff.closeWindow();
-            } catch (liffError) {
-              console.warn('ウィンドウクローズに失敗:', liffError);
-            }
-          }, 2000);
-        }
       }, 1000);
 
     } catch (error) {
@@ -203,11 +138,6 @@ function initializeElements() {
 function initialize() {
   populateShops();
   initializeElements();
-
-  // LIFF初期化は非同期で実行
-  initLiff().catch(error => {
-    console.error('LIFF初期化で予期しないエラー:', error);
-  });
 }
 
 // ページが完全に読み込まれた後に実行

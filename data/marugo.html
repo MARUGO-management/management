@@ -444,8 +444,18 @@
                 <div class="action-buttons">
                     <button class="btn" onclick="loadTestData()">🧪 テストデータ読み込み</button>
                     <button class="btn secondary" onclick="connectToAPI()">🔗 Google Sheets接続</button>
+                    <button class="btn secondary" onclick="testConnection()">🔍 接続テスト</button>
                     <button class="btn secondary" onclick="toggleDebug()">🐛 デバッグ表示</button>
                     <button class="btn danger" onclick="resetSystem()">🔄 リセット</button>
+                </div>
+                
+                <div id="connection-status" style="margin-top: 15px; display: none;">
+                    <div style="background: #e9ecef; padding: 10px; border-radius: 8px; font-size: 14px;">
+                        <strong>📊 データソース:</strong> <span id="data-source">未設定</span><br>
+                        <strong>📈 レコード数:</strong> <span id="record-count">0</span>件<br>
+                        <strong>🏪 店舗数:</strong> <span id="store-count">0</span>店舗<br>
+                        <strong>⏰ 最終更新:</strong> <span id="last-update">-</span>
+                    </div>
                 </div>
             </div>
 
@@ -681,29 +691,381 @@
                     category: 'その他',
                     item: '調味料',
                     amount: 2000
+                },
+                {
+                    date: '2024-01-19',
+                    name: 'テスト四郎',
+                    lender: 'Claudia2',
+                    borrower: 'BISTRO CAVACAVA',
+                    category: '飲料',
+                    item: 'ワイン',
+                    amount: 12000
                 }
             ];
 
             updateStores();
+            updateDataSourceInfo('🧪 テストデータ');
             log(`テストデータ読み込み完了！${allData.length}件、${stores.length}店舗`, 'success');
             document.getElementById('search-section').style.display = 'block';
         }
 
         // Google Sheets API接続
-        function connectToAPI() {
+        async function connectToAPI() {
             log('Google Sheets API に接続中...', 'loading');
             addDebugLog('API接続開始');
+            addDebugLog(`API Key: ${apiKey.substring(0, 10)}...`);
+            addDebugLog(`Spreadsheet ID: ${spreadsheetId}`);
             
-            // 簡易実装（タイムアウト付き）
-            setTimeout(() => {
-                log('API接続タイムアウト。テストデータに切り替えます。', 'error');
-                loadTestData();
-            }, 5000);
-            
-            // 実際のAPI接続処理は後で段階的に追加
+            try {
+                // タイムアウト設定（15秒）
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                    addDebugLog('API接続タイムアウト（15秒）');
+                }, 15000);
+
+                // Step 1: スプレッドシート情報取得
+                log('スプレッドシート情報を取得中...', 'loading');
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                addDebugLog(`メタデータURL: ${metadataUrl}`);
+                
+                const metadataResponse = await fetch(metadataUrl, {
+                    signal: controller.signal
+                });
+                
+                addDebugLog(`メタデータレスポンス: ${metadataResponse.status} ${metadataResponse.statusText}`);
+                
+                if (!metadataResponse.ok) {
+                    if (metadataResponse.status === 403) {
+                        throw new Error('APIキーが無効または権限が不足しています');
+                    } else if (metadataResponse.status === 404) {
+                        throw new Error('スプレッドシートが見つかりません');
+                    } else {
+                        throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
+                    }
+                }
+                
+                const metadata = await metadataResponse.json();
+                addDebugLog(`スプレッドシート名: ${metadata.properties.title}`);
+                addDebugLog(`シート数: ${metadata.sheets.length}`);
+                
+                if (!metadata.sheets || metadata.sheets.length === 0) {
+                    throw new Error('スプレッドシートにシートが見つかりません');
+                }
+                
+                const firstSheetName = metadata.sheets[0].properties.title;
+                addDebugLog(`使用するシート: ${firstSheetName}`);
+                
+                // Step 2: データ取得
+                log('データを取得中...', 'loading');
+                const range = `${firstSheetName}!A:Z`;
+                const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+                addDebugLog(`データURL: ${dataUrl}`);
+                
+                const dataResponse = await fetch(dataUrl, {
+                    signal: controller.signal
+                });
+                
+                addDebugLog(`データレスポンス: ${dataResponse.status} ${dataResponse.statusText}`);
+                
+                if (!dataResponse.ok) {
+                    throw new Error(`データ取得失敗: ${dataResponse.status} ${dataResponse.statusText}`);
+                }
+                
+                const data = await dataResponse.json();
+                clearTimeout(timeoutId);
+                
+                addDebugLog(`取得行数: ${data.values ? data.values.length : 0}`);
+                
+                if (!data.values || data.values.length === 0) {
+                    throw new Error('スプレッドシートにデータが見つかりません');
+                }
+                
+                // Step 3: データ処理
+                log('データを処理中...', 'loading');
+                await processSheetData(data.values);
+                
+                // Step 4: 完了
+                updateStores();
+                updateDataSourceInfo('🔗 Google Sheets（リアルタイム）');
+                log(`API接続完了！${allData.length}件のレコード、${stores.length}店舗`, 'success');
+                addDebugLog(`API接続完了: データ${allData.length}件、店舗${stores.length}件`);
+                document.getElementById('search-section').style.display = 'block';
+                
+            } catch (error) {
+                addDebugLog(`API接続エラー: ${error.message}`);
+                console.error('API接続エラー:', error);
+                
+                if (error.name === 'AbortError') {
+                    log('API接続がタイムアウトしました。テストデータに切り替えます...', 'error');
+                } else {
+                    log(`API接続エラー: ${error.message}。テストデータに切り替えます...`, 'error');
+                }
+                
+                // フォールバック: テストデータに自動切り替え
+                setTimeout(() => {
+                    addDebugLog('テストデータにフォールバック');
+                    loadTestData();
+                }, 2000);
+            }
         }
 
-        // 店舗管理
+        // スプレッドシートデータ処理
+        async function processSheetData(values) {
+            addDebugLog('データ処理開始');
+            addDebugLog(`処理対象行数: ${values.length}`);
+            
+            if (values.length === 0) {
+                throw new Error('処理するデータがありません');
+            }
+
+            // ヘッダー行の解析
+            const headers = values[0];
+            addDebugLog(`ヘッダー: [${headers.join(', ')}]`);
+            
+            // フィールドマッピング
+            const getColumnIndex = (aliases) => {
+                for (const alias of aliases) {
+                    const index = headers.findIndex(header => {
+                        if (!header) return false;
+                        const headerLower = header.toLowerCase().trim();
+                        const aliasLower = alias.toLowerCase();
+                        
+                        // 完全一致
+                        if (headerLower === aliasLower) return true;
+                        
+                        // 部分一致
+                        if (headerLower.includes(aliasLower) || aliasLower.includes(headerLower)) return true;
+                        
+                        return false;
+                    });
+                    if (index !== -1) {
+                        addDebugLog(`フィールドマッピング成功: ${alias} -> ${headers[index]} (列${index})`);
+                        return index;
+                    }
+                }
+                addDebugLog(`フィールドマッピング失敗: ${aliases[0]}`);
+                return -1;
+            };
+
+            const dateIndex = getColumnIndex(['日付', 'date', '取引日', '›', 'timestamp']);
+            const nameIndex = getColumnIndex(['名前', 'name', '取引名', '入力者名', '入力者']);
+            const lenderIndex = getColumnIndex(['貸主', 'lender', '貸し手', '貸出店舗']);
+            const borrowerIndex = getColumnIndex(['借主', 'borrower', '借り手', '借入店舗']);
+            const categoryIndex = getColumnIndex(['カテゴリー', 'category', '分類', 'カテゴリ']);
+            const itemIndex = getColumnIndex(['品目', 'item', '商品', '商品名', '内容']);
+            const amountIndex = getColumnIndex(['金額', 'amount', '価格', '値段', '料金']);
+            const inputDateIndex = getColumnIndex(['入力日時', 'inputDate', '登録日時', '作成日時']);
+
+            // 必須フィールドチェック
+            const requiredFields = [
+                { name: '日付', index: dateIndex, aliases: ['日付', 'date', '›'] },
+                { name: '貸主', index: lenderIndex, aliases: ['貸主', 'lender'] },
+                { name: '借主', index: borrowerIndex, aliases: ['借主', 'borrower'] },
+                { name: '金額', index: amountIndex, aliases: ['金額', 'amount'] }
+            ];
+
+            const missingFields = requiredFields.filter(field => field.index === -1);
+            if (missingFields.length > 0) {
+                const missingNames = missingFields.map(f => `${f.name} (${f.aliases.join('/')})}`).join(', ');
+                addDebugLog(`必須フィールドが見つかりません: ${missingNames}`);
+                throw new Error(`必須フィールドが見つかりません: ${missingNames}`);
+            }
+
+            addDebugLog('フィールドマッピング完了');
+            addDebugLog(`日付:${dateIndex}, 貸主:${lenderIndex}, 借主:${borrowerIndex}, 金額:${amountIndex}`);
+
+            // データ行処理
+            const dataRows = values.slice(1);
+            addDebugLog(`データ行数: ${dataRows.length}`);
+            
+            allData = dataRows.map((row, index) => {
+                const getValue = (colIndex) => {
+                    if (colIndex === -1 || !row[colIndex]) return '';
+                    return String(row[colIndex]).trim();
+                };
+                
+                const processedRow = {
+                    date: extractDateFromDateTime(getValue(dateIndex)),
+                    name: getValue(nameIndex) || '不明',
+                    lender: normalizeStoreName(getValue(lenderIndex)),
+                    borrower: normalizeStoreName(getValue(borrowerIndex)),
+                    category: getValue(categoryIndex) || 'その他',
+                    item: getValue(itemIndex) || '品目不明',
+                    amount: parseAmount(getValue(amountIndex)),
+                    originalAmount: getValue(amountIndex),
+                    inputDate: getValue(inputDateIndex)
+                };
+
+                // サンプルログ（最初の3行のみ）
+                if (index < 3) {
+                    addDebugLog(`行${index + 2}サンプル: ${processedRow.date}, ${processedRow.lender}→${processedRow.borrower}, ${processedRow.item}, ¥${processedRow.amount}`);
+                }
+
+                return processedRow;
+            }).filter((row, index) => {
+                const isValid = row.date && row.lender && row.borrower && row.amount > 0;
+                if (!isValid && index < 10) {
+                    addDebugLog(`無効行スキップ（行${index + 2}）: 日付=${row.date}, 貸主=${row.lender}, 借主=${row.borrower}, 金額=${row.amount}`);
+                }
+                return isValid;
+            });
+
+            addDebugLog(`処理完了: 有効データ${allData.length}件`);
+            
+            if (allData.length === 0) {
+                throw new Error('有効なデータがありません。データ形式を確認してください。');
+            }
+        }
+
+        // 日付抽出関数
+        function extractDateFromDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            
+            try {
+                // 既に適切な形式の場合
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr)) {
+                    return dateTimeStr;
+                }
+                
+                // ISO形式やJavaScript Date形式
+                const date = new Date(dateTimeStr);
+                if (!isNaN(date.getTime())) {
+                    return date.toISOString().split('T')[0];
+                }
+                
+                // 日本語形式 (例: 2024年1月15日)
+                const japaneseMatch = dateTimeStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                if (japaneseMatch) {
+                    const [, year, month, day] = japaneseMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+                
+                // スラッシュ区切り (例: 2024/1/15)
+                const slashMatch = dateTimeStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+                if (slashMatch) {
+                    const [, year, month, day] = slashMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+                
+                // ハイフン区切り (例: 2024-1-15)
+                const hyphenMatch = dateTimeStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (hyphenMatch) {
+                    const [, year, month, day] = hyphenMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+                
+                addDebugLog(`日付変換失敗: ${dateTimeStr}`);
+                return '';
+            } catch (error) {
+                addDebugLog(`日付変換エラー: ${dateTimeStr} -> ${error.message}`);
+                return '';
+            }
+        }
+
+        // 店舗名正規化
+        function normalizeStoreName(storeName) {
+            if (!storeName) return '';
+            
+            const normalized = storeName.trim();
+            
+            // 正規化ルール
+            const normalizations = {
+                'クラウディア２': 'Claudia2',
+                'クラウディア2': 'Claudia2',
+                'マルゴ': 'MARUGO',
+                'マルゴセカンド': 'MARUGO2',
+                'BISTRO CAVA,CAVA': 'BISTRO CAVACAVA',
+                'BISTRO CAVA CAVA': 'BISTRO CAVACAVA',
+                'BISTROCAVACAVA': 'BISTRO CAVACAVA',
+                'BISTRO CAVA・CAVA': 'BISTRO CAVACAVA'
+            };
+            
+            // 完全一致での正規化
+            if (normalizations[normalized]) {
+                return normalizations[normalized];
+            }
+            
+            // BISTRO CAVA系の部分的正規化
+            if (normalized.toUpperCase().includes('BISTRO') && normalized.toUpperCase().includes('CAVA')) {
+                return 'BISTRO CAVACAVA';
+            }
+            
+            return normalized;
+        }
+
+        // 金額解析
+        function parseAmount(amountStr) {
+            if (!amountStr) return 0;
+            
+            try {
+                // 全角数字を半角に変換
+                const normalized = String(amountStr).replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
+                
+                // 通貨記号、カンマ、スペースを除去
+                const cleaned = normalized.replace(/[,\s¥円$]/g, '');
+                
+                const result = parseFloat(cleaned) || 0;
+                
+                if (result === 0 && amountStr && amountStr !== '0') {
+                    addDebugLog(`金額変換に問題: "${amountStr}" -> ${result}`);
+                }
+                
+                return result;
+            } catch (error) {
+                addDebugLog(`金額変換エラー: "${amountStr}" -> ${error.message}`);
+                return 0;
+            }
+        }
+
+        // 接続テスト機能
+        async function testConnection() {
+            log('接続テストを実行中...', 'loading');
+            addDebugLog('接続テスト開始');
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                }, 10000);
+
+                const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                
+                const response = await fetch(testUrl, {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ 接続テスト成功！スプレッドシートにアクセス可能です', 'success');
+                    addDebugLog(`接続テスト成功: ${data.properties.title}`);
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    log('⏰ 接続テストタイムアウト', 'error');
+                    addDebugLog('接続テストタイムアウト');
+                } else {
+                    log(`❌ 接続テスト失敗: ${error.message}`, 'error');
+                    addDebugLog(`接続テスト失敗: ${error.message}`);
+                }
+            }
+        }
+
+        // データソース情報更新
+        function updateDataSourceInfo(source) {
+            const statusDiv = document.getElementById('connection-status');
+            statusDiv.style.display = 'block';
+            
+            document.getElementById('data-source').textContent = source;
+            document.getElementById('record-count').textContent = allData.length;
+            document.getElementById('store-count').textContent = stores.length;
+            document.getElementById('last-update').textContent = new Date().toLocaleString('ja-JP');
+        }
         function updateStores() {
             stores = [];
             allData.forEach(row => {
@@ -956,6 +1318,7 @@
             document.getElementById('search-section').style.display = 'none';
             document.getElementById('results').style.display = 'none';
             document.getElementById('debug-section').style.display = 'none';
+            document.getElementById('connection-status').style.display = 'none';
             document.getElementById('store-select').innerHTML = '<option value="">選択してください</option>';
             
             log('システムをリセットしました', 'success');

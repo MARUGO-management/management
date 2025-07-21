@@ -669,8 +669,6 @@
                                 <th class="sortable" onclick="sortTable(4)">カテゴリー</th>
                                 <th class="sortable" onclick="sortTable(5)">金額</th>
                                 <th class="sortable" onclick="sortTable(6)">入力者</th>
-                                <th class="sortable" onclick="sortTable(7)">貸主</th>
-                                <th class="sortable" onclick="sortTable(8)">借主</th>
                             </tr>
                         </thead>
                         <tbody id="details-table">
@@ -1232,7 +1230,7 @@
                 document.getElementById('details-subtitle').textContent = '期間内の全取引データ（各列をクリックでソート）';
 
                 this.updateSummaryCards(storeName);
-                this.updateDetailsTable();
+                this.updateDetailsTable(false); // 店舗別検索モード
                 
                 // ソート状態をリセット
                 sortDirection = {};
@@ -1246,8 +1244,12 @@
                 const resultsSection = document.getElementById('results-section');
                 resultsSection.style.display = 'block';
 
+                // ヘッダーとサブタイトルを更新
+                document.getElementById('details-title').textContent = '全取引詳細';
+                document.getElementById('details-subtitle').textContent = '全期間・全店舗の取引データ（各列をクリックでソート）';
+
                 this.updateAllDataSummaryCards();
-                this.updateAllDataDetailsTable();
+                this.updateDetailsTable(true); // 全データ表示モード
                 
                 // ソート状態をリセット
                 sortDirection = {};
@@ -1505,66 +1507,48 @@
                 `;
             }
 
-            updateDetailsTable() {
+            updateDetailsTable(isAllData = false) {
                 const detailsTable = document.getElementById('details-table');
                 
                 if (this.searchResults.length === 0) {
-                    detailsTable.innerHTML = '<tr><td colspan="9" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    detailsTable.innerHTML = '<tr><td colspan="7" class="no-results">検索条件に該当するデータがありません</td></tr>';
                     return;
                 }
 
                 detailsTable.innerHTML = this.searchResults.map(row => {
-                    const storeName = document.getElementById('store-name').value;
-                    const isLender = row.lender === storeName;
-                    const transactionType = isLender ? '貸出' : '借入';
-                    const counterpart = isLender ? row.borrower : row.lender;
-                    const amountClass = isLender ? 'positive' : 'negative';
+                    if (isAllData) {
+                        // 全データ表示時: 貸主→借主の形で表示
+                        return `
+                            <tr>
+                                <td>${row.date}</td>
+                                <td><span class="type-tag type-貸出">貸借</span></td>
+                                <td>${row.lender} → ${row.borrower}</td>
+                                <td>${row.item}</td>
+                                <td>${row.category}</td>
+                                <td class="amount">¥${row.amount.toLocaleString()}</td>
+                                <td>${row.name}</td>
+                            </tr>
+                        `;
+                    } else {
+                        // 店舗別検索時: 従来の表示
+                        const storeName = document.getElementById('store-name').value;
+                        const isLender = row.lender === storeName;
+                        const transactionType = isLender ? '貸出' : '借入';
+                        const counterpart = isLender ? row.borrower : row.lender;
+                        const amountClass = isLender ? 'positive' : 'negative';
 
-                    return `
-                        <tr>
-                            <td>${row.date}</td>
-                            <td><span class="type-tag type-${transactionType}">${transactionType}</span></td>
-                            <td>${counterpart}</td>
-                            <td>${row.item}</td>
-                            <td>${row.category}</td>
-                            <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
-                            <td>${row.name}</td>
-                            <td>${row.lender}</td>
-                            <td>${row.borrower}</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                // テーブルデータを保存（ソート用）
-                currentTableData = this.searchResults;
-            }
-
-            updateAllDataDetailsTable() {
-                const detailsTable = document.getElementById('details-table');
-                
-                if (this.searchResults.length === 0) {
-                    detailsTable.innerHTML = '<tr><td colspan="9" class="no-results">検索条件に該当するデータがありません</td></tr>';
-                    return;
-                }
-
-                // ヘッダーとサブタイトルを更新
-                document.getElementById('details-title').textContent = '全取引詳細';
-                document.getElementById('details-subtitle').textContent = '全期間・全店舗の取引データ（各列をクリックでソート）';
-
-                detailsTable.innerHTML = this.searchResults.map(row => {
-                    return `
-                        <tr>
-                            <td>${row.date}</td>
-                            <td><span class="type-tag type-貸出">取引</span></td>
-                            <td>-</td>
-                            <td>${row.item}</td>
-                            <td>${row.category}</td>
-                            <td class="amount">¥${row.amount.toLocaleString()}</td>
-                            <td>${row.name}</td>
-                            <td>${row.lender}</td>
-                            <td>${row.borrower}</td>
-                        </tr>
-                    `;
+                        return `
+                            <tr>
+                                <td>${row.date}</td>
+                                <td><span class="type-tag type-${transactionType}">${transactionType}</span></td>
+                                <td>${counterpart}</td>
+                                <td>${row.item}</td>
+                                <td>${row.category}</td>
+                                <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
+                                <td>${row.name}</td>
+                            </tr>
+                        `;
+                    }
                 }).join('');
 
                 // テーブルデータを保存（ソート用）

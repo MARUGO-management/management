@@ -444,6 +444,7 @@
                 <div class="action-buttons">
                     <button class="btn" onclick="loadTestData()">🧪 テストデータ読み込み</button>
                     <button class="btn secondary" onclick="connectToAPI()">🔗 Google Sheets接続</button>
+                    <button class="btn secondary" onclick="showManualMapping()">🔧 手動列指定</button>
                     <button class="btn secondary" onclick="testConnection()">🔍 接続テスト</button>
                     <button class="btn secondary" onclick="checkSpreadsheet()">📋 スプレッドシート確認</button>
                     <button class="btn secondary" onclick="toggleDebug()">🐛 デバッグ表示</button>
@@ -463,6 +464,20 @@
                     <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; font-size: 12px; font-family: monospace;">
                         <strong>🔍 スプレッドシート詳細情報</strong>
                         <div id="spreadsheet-details"></div>
+                    </div>
+                </div>
+                
+                <div id="manual-mapping" style="margin-top: 15px; display: none;">
+                    <div style="background: #e7f3ff; border: 1px solid #b6d7ff; padding: 20px; border-radius: 8px;">
+                        <strong>🔧 手動列指定</strong>
+                        <p style="margin: 10px 0; font-size: 14px;">スプレッドシートの列を手動で指定してください</p>
+                        <div id="column-selectors" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
+                            <!-- 列選択UI が動的に生成される -->
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <button class="btn" onclick="connectWithManualMapping()">✅ この設定で接続</button>
+                            <button class="btn secondary" onclick="hideManualMapping()">❌ キャンセル</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -835,39 +850,69 @@
             const headers = values[0];
             addDebugLog(`ヘッダー: [${headers.join(', ')}]`);
             
-            // フィールドマッピング
+            // フィールドマッピング - より柔軟に
             const getColumnIndex = (aliases) => {
                 for (const alias of aliases) {
                     const index = headers.findIndex(header => {
                         if (!header) return false;
-                        const headerLower = header.toLowerCase().trim();
-                        const aliasLower = alias.toLowerCase();
+                        const headerLower = header.toLowerCase().trim().replace(/\s+/g, '');
+                        const aliasLower = alias.toLowerCase().replace(/\s+/g, '');
                         
                         // 完全一致
                         if (headerLower === aliasLower) return true;
                         
-                        // 部分一致
+                        // 部分一致（より緩い条件）
                         if (headerLower.includes(aliasLower) || aliasLower.includes(headerLower)) return true;
+                        
+                        // 特殊文字を除去して比較
+                        const headerClean = headerLower.replace(/[^\w]/g, '');
+                        const aliasClean = aliasLower.replace(/[^\w]/g, '');
+                        if (headerClean === aliasClean) return true;
                         
                         return false;
                     });
                     if (index !== -1) {
-                        addDebugLog(`フィールドマッピング成功: ${alias} -> ${headers[index]} (列${index})`);
+                        addDebugLog(`✅ フィールドマッピング成功: "${alias}" -> "${headers[index]}" (列${index + 1})`);
                         return index;
                     }
                 }
-                addDebugLog(`フィールドマッピング失敗: ${aliases[0]}`);
+                addDebugLog(`❌ フィールドマッピング失敗: [${aliases.join(', ')}] が見つかりません`);
                 return -1;
             };
 
-            const dateIndex = getColumnIndex(['日付', 'date', '取引日', '›', 'timestamp']);
-            const nameIndex = getColumnIndex(['名前', 'name', '取引名', '入力者名', '入力者']);
-            const lenderIndex = getColumnIndex(['貸主', 'lender', '貸し手', '貸出店舗']);
-            const borrowerIndex = getColumnIndex(['借主', 'borrower', '借り手', '借入店舗']);
-            const categoryIndex = getColumnIndex(['カテゴリー', 'category', '分類', 'カテゴリ']);
-            const itemIndex = getColumnIndex(['品目', 'item', '商品', '商品名', '内容']);
-            const amountIndex = getColumnIndex(['金額', 'amount', '価格', '値段', '料金']);
-            const inputDateIndex = getColumnIndex(['入力日時', 'inputDate', '登録日時', '作成日時']);
+            // より多くの別名パターンを追加
+            const dateIndex = getColumnIndex([
+                '日付', 'date', '取引日', '›', 'timestamp', 'タイムスタンプ',
+                '年月日', 'ひづけ', 'Date', 'DATE', '取引日付'
+            ]);
+            const nameIndex = getColumnIndex([
+                '名前', 'name', '取引名', '入力者名', '入力者', 'Name', 'NAME',
+                '担当者', '記録者', '登録者', 'ユーザー名', 'user'
+            ]);
+            const lenderIndex = getColumnIndex([
+                '貸主', 'lender', '貸し手', '貸出店舗', 'Lender', 'LENDER',
+                '貸出者', '貸す側', '貸出', '貸与者', 'from', 'sender'
+            ]);
+            const borrowerIndex = getColumnIndex([
+                '借主', 'borrower', '借り手', '借入店舗', 'Borrower', 'BORROWER',
+                '借入者', '借りる側', '借入', '借用者', 'to', 'receiver'
+            ]);
+            const categoryIndex = getColumnIndex([
+                'カテゴリー', 'category', '分類', 'カテゴリ', 'Category', 'CATEGORY',
+                '種類', '区分', 'type', 'TYPE', 'ジャンル'
+            ]);
+            const itemIndex = getColumnIndex([
+                '品目', 'item', '商品', '商品名', '内容', 'Item', 'ITEM',
+                '物品', '品名', '項目', 'product', '詳細'
+            ]);
+            const amountIndex = getColumnIndex([
+                '金額', 'amount', '価格', '値段', '料金', 'Amount', 'AMOUNT',
+                'きんがく', 'price', 'value', '合計', 'total', '円'
+            ]);
+            const inputDateIndex = getColumnIndex([
+                '入力日時', 'inputDate', '登録日時', '作成日時', 'created',
+                '入力日', '登録日', 'timestamp'
+            ]);
 
             // 必須フィールドチェック
             const requiredFields = [
@@ -879,11 +924,24 @@
 
             const missingFields = requiredFields.filter(field => field.index === -1);
             if (missingFields.length > 0) {
-                const missingNames = missingFields.map(f => `${f.name} (${f.aliases.join('/')})}`).join(', ');
+                const missingNames = missingFields.map(f => f.name).join(', ');
                 addDebugLog(`❌ 必須フィールドが見つかりません: ${missingNames}`);
                 addDebugLog(`📋 利用可能な列名: [${headers.join(', ')}]`);
                 
-                throw new Error(`❌ 必須フィールドが見つかりません\n\n🚫 見つからない列: ${missingNames}\n\n📋 スプレッドシートの列名:\n${headers.map((h, i) => `列${i+1}: "${h}"`).join('\n')}\n\n🔧 解決方法:\n1. 列名を正しく設定する\n2. 空の列名がないか確認\n3. 列の順序を確認`);
+                // 列名とマッピング推奨を詳細表示
+                let columnMappingInfo = '\n\n📋 現在の列名とマッピング推奨:';
+                headers.forEach((header, index) => {
+                    const suggestion = analyzeColumnName(header);
+                    columnMappingInfo += `\n列${index + 1}: "${header}" → ${suggestion}`;
+                });
+                
+                // 修正案を提示
+                let fixSuggestions = '\n\n🔧 修正案:';
+                missingFields.forEach(field => {
+                    fixSuggestions += `\n• ${field.name}: 列名を "${field.aliases.slice(0, 3).join('", "')}" のいずれかに変更`;
+                });
+                
+                throw new Error(`❌ 必須フィールドが見つかりません\n\n🚫 見つからない列: ${missingNames}${columnMappingInfo}${fixSuggestions}\n\n💡 または、スプレッドシートの1行目（ヘッダー行）を確認して、列名を統一してください。`);
             }
 
             addDebugLog('フィールドマッピング完了');
@@ -1103,7 +1161,7 @@
                 
                 // 最初のシートのデータサンプルを取得
                 const firstSheetName = metadata.sheets[0].properties.title;
-                const sampleRange = `${firstSheetName}!A1:Z5`; // 最初の5行を取得
+                const sampleRange = `${firstSheetName}!A1:Z10`; // 最初の10行を取得
                 const sampleUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sampleRange}?key=${apiKey}`;
                 
                 addDebugLog(`サンプルデータURL: ${sampleUrl}`);
@@ -1117,6 +1175,18 @@
                 
                 const sampleData = await sampleResponse.json();
                 addDebugLog('サンプルデータ:', sampleData);
+                
+                // 列名分析とマッピング推奨
+                let columnAnalysis = '';
+                if (sampleData.values && sampleData.values.length > 0) {
+                    const headers = sampleData.values[0];
+                    
+                    columnAnalysis = '<br><strong>📋 列名分析とマッピング推奨:</strong><br>';
+                    headers.forEach((header, index) => {
+                        const suggestions = analyzeColumnName(header);
+                        columnAnalysis += `列${index + 1}: "${header}" → ${suggestions}<br>`;
+                    });
+                }
                 
                 // 詳細情報を画面に表示
                 let detailsHTML = `
@@ -1135,9 +1205,10 @@
                 detailsHTML += `<br><strong>📋 データサンプル (${firstSheetName}):</strong><br>`;
                 
                 if (sampleData.values && sampleData.values.length > 0) {
-                    sampleData.values.forEach((row, index) => {
+                    sampleData.values.slice(0, 5).forEach((row, index) => {
                         detailsHTML += `行${index + 1}: [${row.join(', ')}]<br>`;
                     });
+                    detailsHTML += columnAnalysis;
                 } else {
                     detailsHTML += '⚠️ データが見つかりません<br>';
                 }
@@ -1207,7 +1278,181 @@
             }
         }
 
-        // データソース情報更新
+        // 手動マッピング機能
+        let currentSpreadsheetHeaders = [];
+        let manualMapping = {};
+
+        async function showManualMapping() {
+            try {
+                // まずスプレッドシートのヘッダーを取得
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                const metadataResponse = await fetch(metadataUrl);
+                
+                if (!metadataResponse.ok) {
+                    throw new Error('スプレッドシートにアクセスできません');
+                }
+                
+                const metadata = await metadataResponse.json();
+                const firstSheetName = metadata.sheets[0].properties.title;
+                
+                const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${firstSheetName}!A1:Z1?key=${apiKey}`;
+                const headerResponse = await fetch(headerUrl);
+                
+                if (!headerResponse.ok) {
+                    throw new Error('ヘッダー情報を取得できません');
+                }
+                
+                const headerData = await headerResponse.json();
+                currentSpreadsheetHeaders = headerData.values ? headerData.values[0] : [];
+                
+                if (currentSpreadsheetHeaders.length === 0) {
+                    throw new Error('ヘッダー行が見つかりません');
+                }
+                
+                displayManualMapping();
+                
+            } catch (error) {
+                log(`手動マッピング準備エラー: ${error.message}`, 'error');
+            }
+        }
+
+        function displayManualMapping() {
+            const mappingDiv = document.getElementById('manual-mapping');
+            const selectorsDiv = document.getElementById('column-selectors');
+            
+            const requiredFields = [
+                { key: 'date', label: '🗓️ 日付', description: '取引日付' },
+                { key: 'lender', label: '💰 貸主', description: '貸出店舗' },
+                { key: 'borrower', label: '🏪 借主', description: '借入店舗' },
+                { key: 'amount', label: '💰 金額', description: '取引金額' }
+            ];
+            
+            const optionalFields = [
+                { key: 'name', label: '👤 入力者', description: '入力者名' },
+                { key: 'item', label: '📦 品目', description: '取引品目' },
+                { key: 'category', label: '🏷️ カテゴリー', description: 'カテゴリー' }
+            ];
+            
+            let selectorsHTML = '';
+            
+            [...requiredFields, ...optionalFields].forEach(field => {
+                selectorsHTML += `
+                    <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                        <strong>${field.label}</strong><br>
+                        <small style="color: #666;">${field.description}</small><br>
+                        <select id="mapping-${field.key}" style="width: 100%; margin-top: 5px; padding: 5px;">
+                            <option value="">選択してください</option>
+                            ${currentSpreadsheetHeaders.map((header, index) => 
+                                `<option value="${index}">${index + 1}列目: ${header}</option>`
+                            ).join('')}
+                        </select>
+                        ${requiredFields.includes(field) ? '<span style="color: red;">*必須</span>' : ''}
+                    </div>
+                `;
+            });
+            
+            selectorsDiv.innerHTML = selectorsHTML;
+            mappingDiv.style.display = 'block';
+        }
+
+        function hideManualMapping() {
+            document.getElementById('manual-mapping').style.display = 'none';
+        }
+
+        async function connectWithManualMapping() {
+            // 手動設定を取得
+            manualMapping = {
+                date: parseInt(document.getElementById('mapping-date').value),
+                lender: parseInt(document.getElementById('mapping-lender').value),
+                borrower: parseInt(document.getElementById('mapping-borrower').value),
+                amount: parseInt(document.getElementById('mapping-amount').value),
+                name: parseInt(document.getElementById('mapping-name').value) || -1,
+                item: parseInt(document.getElementById('mapping-item').value) || -1,
+                category: parseInt(document.getElementById('mapping-category').value) || -1
+            };
+            
+            // 必須フィールドチェック
+            const requiredFields = ['date', 'lender', 'borrower', 'amount'];
+            const missingFields = requiredFields.filter(field => isNaN(manualMapping[field]));
+            
+            if (missingFields.length > 0) {
+                alert(`必須フィールドを選択してください: ${missingFields.join(', ')}`);
+                return;
+            }
+            
+            log('手動マッピングでGoogle Sheetsに接続中...', 'loading');
+            addDebugLog('手動マッピング設定:', manualMapping);
+            
+            try {
+                // メタデータ取得
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                const metadataResponse = await fetch(metadataUrl);
+                const metadata = await metadataResponse.json();
+                const firstSheetName = metadata.sheets[0].properties.title;
+                
+                // データ取得
+                const range = `${firstSheetName}!A:Z`;
+                const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+                const dataResponse = await fetch(dataUrl);
+                const data = await dataResponse.json();
+                
+                // 手動マッピングでデータ処理
+                await processSheetDataWithManualMapping(data.values);
+                
+                updateStores();
+                updateDataSourceInfo('🔗 Google Sheets（手動マッピング）');
+                hideManualMapping();
+                
+                log(`手動マッピング接続完了！${allData.length}件のレコード、${stores.length}店舗`, 'success');
+                document.getElementById('search-section').style.display = 'block';
+                
+            } catch (error) {
+                log(`手動マッピング接続エラー: ${error.message}`, 'error');
+                addDebugLog('手動マッピング接続エラー:', error);
+            }
+        }
+
+        async function processSheetDataWithManualMapping(values) {
+            addDebugLog('手動マッピングでデータ処理開始');
+            
+            if (values.length <= 1) {
+                throw new Error('データが不足しています');
+            }
+            
+            const dataRows = values.slice(1);
+            addDebugLog(`処理対象行数: ${dataRows.length}`);
+            
+            allData = dataRows.map((row, index) => {
+                const getValue = (colIndex) => {
+                    if (colIndex === -1 || !row[colIndex]) return '';
+                    return String(row[colIndex]).trim();
+                };
+                
+                const processedRow = {
+                    date: extractDateFromDateTime(getValue(manualMapping.date)),
+                    name: getValue(manualMapping.name) || '不明',
+                    lender: normalizeStoreName(getValue(manualMapping.lender)),
+                    borrower: normalizeStoreName(getValue(manualMapping.borrower)),
+                    category: getValue(manualMapping.category) || 'その他',
+                    item: getValue(manualMapping.item) || '品目不明',
+                    amount: parseAmount(getValue(manualMapping.amount)),
+                    originalAmount: getValue(manualMapping.amount),
+                    inputDate: ''
+                };
+                
+                if (index < 3) {
+                    addDebugLog(`手動マッピング行${index + 2}: ${processedRow.date}, ${processedRow.lender}→${processedRow.borrower}, ${processedRow.item}, ¥${processedRow.amount}`);
+                }
+                
+                return processedRow;
+            }).filter(row => row.date && row.lender && row.borrower && row.amount > 0);
+            
+            addDebugLog(`手動マッピング処理完了: 有効データ${allData.length}件`);
+            
+            if (allData.length === 0) {
+                throw new Error('有効なデータがありません。マッピング設定を確認してください。');
+            }
+        }
         function updateDataSourceInfo(source) {
             const statusDiv = document.getElementById('connection-status');
             statusDiv.style.display = 'block';
@@ -1465,11 +1710,15 @@
             stores = [];
             debugLog = [];
             sortDirection = {};
+            currentSpreadsheetHeaders = [];
+            manualMapping = {};
             
             document.getElementById('search-section').style.display = 'none';
             document.getElementById('results').style.display = 'none';
             document.getElementById('debug-section').style.display = 'none';
             document.getElementById('connection-status').style.display = 'none';
+            document.getElementById('spreadsheet-info').style.display = 'none';
+            document.getElementById('manual-mapping').style.display = 'none';
             document.getElementById('store-select').innerHTML = '<option value="">選択してください</option>';
             
             log('システムをリセットしました', 'success');

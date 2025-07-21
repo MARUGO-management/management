@@ -445,6 +445,7 @@
                     <button class="btn" onclick="loadTestData()">🧪 テストデータ読み込み</button>
                     <button class="btn secondary" onclick="connectToAPI()">🔗 Google Sheets接続</button>
                     <button class="btn secondary" onclick="testConnection()">🔍 接続テスト</button>
+                    <button class="btn secondary" onclick="checkSpreadsheet()">📋 スプレッドシート確認</button>
                     <button class="btn secondary" onclick="toggleDebug()">🐛 デバッグ表示</button>
                     <button class="btn danger" onclick="resetSystem()">🔄 リセット</button>
                 </div>
@@ -455,6 +456,13 @@
                         <strong>📈 レコード数:</strong> <span id="record-count">0</span>件<br>
                         <strong>🏪 店舗数:</strong> <span id="store-count">0</span>店舗<br>
                         <strong>⏰ 最終更新:</strong> <span id="last-update">-</span>
+                    </div>
+                </div>
+                
+                <div id="spreadsheet-info" style="margin-top: 15px; display: none;">
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; font-size: 12px; font-family: monospace;">
+                        <strong>🔍 スプレッドシート詳細情報</strong>
+                        <div id="spreadsheet-details"></div>
                     </div>
                 </div>
             </div>
@@ -737,9 +745,13 @@
                 
                 if (!metadataResponse.ok) {
                     if (metadataResponse.status === 403) {
-                        throw new Error('APIキーが無効または権限が不足しています');
+                        const errorDetails = await metadataResponse.text();
+                        addDebugLog(`403エラー詳細: ${errorDetails}`);
+                        throw new Error(`❌ アクセス権限エラー (403)\n\n🔧 解決方法:\n1. スプレッドシートの共有設定を確認\n2. 「リンクを知っている全員が閲覧可」に設定\n3. APIキーの権限を確認\n\n詳細: ${metadataResponse.statusText}`);
                     } else if (metadataResponse.status === 404) {
-                        throw new Error('スプレッドシートが見つかりません');
+                        throw new Error(`❌ スプレッドシートが見つかりません (404)\n\n🔧 解決方法:\n1. スプレッドシートIDが正しいか確認\n2. スプレッドシートが削除されていないか確認\n3. URLをコピーしてIDを再確認\n\n現在のID: ${spreadsheetId}`);
+                    } else if (metadataResponse.status === 400) {
+                        throw new Error(`❌ リクエストエラー (400)\n\n🔧 解決方法:\n1. APIキーが正しいか確認\n2. スプレッドシートIDの形式を確認\n\n詳細: ${metadataResponse.statusText}`);
                     } else {
                         throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
                     }
@@ -868,8 +880,10 @@
             const missingFields = requiredFields.filter(field => field.index === -1);
             if (missingFields.length > 0) {
                 const missingNames = missingFields.map(f => `${f.name} (${f.aliases.join('/')})}`).join(', ');
-                addDebugLog(`必須フィールドが見つかりません: ${missingNames}`);
-                throw new Error(`必須フィールドが見つかりません: ${missingNames}`);
+                addDebugLog(`❌ 必須フィールドが見つかりません: ${missingNames}`);
+                addDebugLog(`📋 利用可能な列名: [${headers.join(', ')}]`);
+                
+                throw new Error(`❌ 必須フィールドが見つかりません\n\n🚫 見つからない列: ${missingNames}\n\n📋 スプレッドシートの列名:\n${headers.map((h, i) => `列${i+1}: "${h}"`).join('\n')}\n\n🔧 解決方法:\n1. 列名を正しく設定する\n2. 空の列名がないか確認\n3. 列の順序を確認`);
             }
 
             addDebugLog('フィールドマッピング完了');
@@ -914,7 +928,33 @@
             addDebugLog(`処理完了: 有効データ${allData.length}件`);
             
             if (allData.length === 0) {
-                throw new Error('有効なデータがありません。データ形式を確認してください。');
+                addDebugLog('⚠️ 有効なデータが0件です');
+                
+                // 無効データの詳細分析
+                let emptyDateCount = 0;
+                let emptyLenderCount = 0;
+                let emptyBorrowerCount = 0;
+                let zeroAmountCount = 0;
+                
+                dataRows.forEach(row => {
+                    const getValue = (colIndex) => {
+                        if (colIndex === -1 || !row[colIndex]) return '';
+                        return String(row[colIndex]).trim();
+                    };
+                    
+                    if (!extractDateFromDateTime(getValue(dateIndex))) emptyDateCount++;
+                    if (!normalizeStoreName(getValue(lenderIndex))) emptyLenderCount++;
+                    if (!normalizeStoreName(getValue(borrowerIndex))) emptyBorrowerCount++;
+                    if (parseAmount(getValue(amountIndex)) <= 0) zeroAmountCount++;
+                });
+                
+                addDebugLog(`無効データの理由:`);
+                addDebugLog(`- 日付が空の行: ${emptyDateCount}件`);
+                addDebugLog(`- 貸主が空の行: ${emptyLenderCount}件`);
+                addDebugLog(`- 借主が空の行: ${emptyBorrowerCount}件`);
+                addDebugLog(`- 金額が0以下の行: ${zeroAmountCount}件`);
+                
+                throw new Error(`❌ 有効なデータがありません\n\n🔍 データ確認結果:\n• 総行数: ${dataRows.length}件\n• 有効データ: 0件\n\n📊 無効データの内訳:\n• 日付が空: ${emptyDateCount}件\n• 貸主が空: ${emptyLenderCount}件\n• 借主が空: ${emptyBorrowerCount}件\n• 金額が0以下: ${zeroAmountCount}件\n\n🔧 解決方法:\n1. 必須項目を全て入力\n2. 日付形式を確認 (YYYY-MM-DD推奨)\n3. 金額を数値で入力\n4. 空行を削除`);
             }
         }
 
@@ -1018,7 +1058,118 @@
             }
         }
 
-        // 接続テスト機能
+        // スプレッドシート詳細確認
+        async function checkSpreadsheet() {
+            log('スプレッドシート詳細を確認中...', 'loading');
+            addDebugLog('=== スプレッドシート詳細確認開始 ===');
+            
+            const infoDiv = document.getElementById('spreadsheet-info');
+            const detailsDiv = document.getElementById('spreadsheet-details');
+            
+            try {
+                // 設定情報表示
+                addDebugLog(`API Key: ${apiKey.substring(0, 20)}...`);
+                addDebugLog(`Spreadsheet ID: ${spreadsheetId}`);
+                
+                // メタデータ取得
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+                addDebugLog(`メタデータURL: ${metadataUrl}`);
+                
+                const metadataResponse = await fetch(metadataUrl);
+                addDebugLog(`メタデータレスポンス: ${metadataResponse.status} ${metadataResponse.statusText}`);
+                
+                if (!metadataResponse.ok) {
+                    const errorText = await metadataResponse.text();
+                    addDebugLog(`メタデータエラー詳細: ${errorText}`);
+                    throw new Error(`${metadataResponse.status}: ${metadataResponse.statusText}`);
+                }
+                
+                const metadata = await metadataResponse.json();
+                
+                // スプレッドシート情報を詳細表示
+                const spreadsheetInfo = {
+                    title: metadata.properties.title,
+                    locale: metadata.properties.locale,
+                    timeZone: metadata.properties.timeZone,
+                    sheets: metadata.sheets.map(sheet => ({
+                        title: sheet.properties.title,
+                        sheetId: sheet.properties.sheetId,
+                        sheetType: sheet.properties.sheetType,
+                        gridProperties: sheet.properties.gridProperties
+                    }))
+                };
+                
+                addDebugLog('スプレッドシート基本情報:', spreadsheetInfo);
+                
+                // 最初のシートのデータサンプルを取得
+                const firstSheetName = metadata.sheets[0].properties.title;
+                const sampleRange = `${firstSheetName}!A1:Z5`; // 最初の5行を取得
+                const sampleUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sampleRange}?key=${apiKey}`;
+                
+                addDebugLog(`サンプルデータURL: ${sampleUrl}`);
+                
+                const sampleResponse = await fetch(sampleUrl);
+                addDebugLog(`サンプルデータレスポンス: ${sampleResponse.status}`);
+                
+                if (!sampleResponse.ok) {
+                    throw new Error(`サンプルデータ取得失敗: ${sampleResponse.status}`);
+                }
+                
+                const sampleData = await sampleResponse.json();
+                addDebugLog('サンプルデータ:', sampleData);
+                
+                // 詳細情報を画面に表示
+                let detailsHTML = `
+                    <strong>📋 スプレッドシート名:</strong> ${spreadsheetInfo.title}<br>
+                    <strong>🌍 ロケール:</strong> ${spreadsheetInfo.locale}<br>
+                    <strong>⏰ タイムゾーン:</strong> ${spreadsheetInfo.timeZone}<br>
+                    <strong>📄 シート数:</strong> ${spreadsheetInfo.sheets.length}<br><br>
+                    
+                    <strong>📊 シート一覧:</strong><br>
+                `;
+                
+                spreadsheetInfo.sheets.forEach(sheet => {
+                    detailsHTML += `• ${sheet.title} (ID: ${sheet.sheetId})<br>`;
+                });
+                
+                detailsHTML += `<br><strong>📋 データサンプル (${firstSheetName}):</strong><br>`;
+                
+                if (sampleData.values && sampleData.values.length > 0) {
+                    sampleData.values.forEach((row, index) => {
+                        detailsHTML += `行${index + 1}: [${row.join(', ')}]<br>`;
+                    });
+                } else {
+                    detailsHTML += '⚠️ データが見つかりません<br>';
+                }
+                
+                detailsDiv.innerHTML = detailsHTML;
+                infoDiv.style.display = 'block';
+                
+                log('✅ スプレッドシート詳細確認完了', 'success');
+                addDebugLog('=== スプレッドシート詳細確認完了 ===');
+                
+            } catch (error) {
+                addDebugLog(`スプレッドシート確認エラー: ${error.message}`);
+                
+                let errorHTML = `
+                    <span style="color: #dc3545;"><strong>❌ エラー:</strong> ${error.message}</span><br><br>
+                    <strong>🔍 確認事項:</strong><br>
+                    • スプレッドシートが存在するか<br>
+                    • 「リンクを知っている全員」に設定されているか<br>
+                    • APIキーが有効か<br>
+                    • Google Sheets APIが有効か<br><br>
+                    
+                    <strong>📋 設定情報:</strong><br>
+                    • API Key: ${apiKey.substring(0, 20)}...<br>
+                    • Spreadsheet ID: ${spreadsheetId}<br>
+                `;
+                
+                detailsDiv.innerHTML = errorHTML;
+                infoDiv.style.display = 'block';
+                
+                log(`❌ スプレッドシート確認エラー: ${error.message}`, 'error');
+            }
+        }
         async function testConnection() {
             log('接続テストを実行中...', 'loading');
             addDebugLog('接続テスト開始');

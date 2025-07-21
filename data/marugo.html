@@ -931,7 +931,7 @@
                 // 列名とマッピング推奨を詳細表示
                 let columnMappingInfo = '\n\n📋 現在の列名とマッピング推奨:';
                 headers.forEach((header, index) => {
-                    const suggestion = getColumnTypeSuggestion(header);
+                    const suggestion = analyzeColumnName(header);
                     columnMappingInfo += `\n列${index + 1}: "${header}" → ${suggestion}`;
                 });
                 
@@ -1202,7 +1202,7 @@
                         const headers = sampleData.values[0];
                         detailsHTML += '<br><strong>📋 列名分析とマッピング推奨:</strong><br>';
                         headers.forEach((header, index) => {
-                            const suggestion = getColumnTypeSuggestion(header);
+                            const suggestion = analyzeColumnName(header);
                             detailsHTML += `列${index + 1}: "${header}" → ${suggestion}<br>`;
                         });
                     }

@@ -522,6 +522,224 @@
             transform: translateY(-2px);
         }
 
+        .delete-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 2px;
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        .delete-btn:active {
+            transform: translateY(0);
+        }
+
+        .delete-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .delete-confirmation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .delete-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .delete-modal h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .delete-modal p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #495057;
+        }
+
+        .delete-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .delete-confirm-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .delete-confirm-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .delete-cancel-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .delete-cancel-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .record-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .delete-password-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 15px 0;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .delete-password-input:focus {
+            border-color: #c82333;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+        }
+
+        .delete-log-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-left: 15px;
+        }
+
+        .delete-log-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .delete-log-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .delete-log-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            max-height: 80vh;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .delete-log-content h3 {
+            color: #dc3545;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .delete-log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .delete-log-table th,
+        .delete-log-table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        .delete-log-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .delete-log-table td {
+            font-size: 14px;
+        }
+
+        .delete-log-close {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            float: right;
+        }
+
+        .delete-log-close:hover {
+            transform: translateY(-2px);
+        }
+
+        .password-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .search-form {
                 grid-template-columns: 1fr;
@@ -669,6 +887,7 @@
                                 <th class="sortable" onclick="sortTable(4)">カテゴリー</th>
                                 <th class="sortable" onclick="sortTable(5)">金額</th>
                                 <th class="sortable" onclick="sortTable(6)">入力者</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="details-table">
@@ -679,9 +898,42 @@
 
             <div class="export-section">
                 <button class="export-btn" id="export-btn">📊 結果をCSV出力</button>
+                <button class="delete-log-btn" id="delete-log-btn">🗑️ 削除履歴を見る</button>
             </div>
         </div>
         <!-- メインアプリケーション終了 -->
+        </div>
+
+        <!-- 削除確認モーダル -->
+        <div class="delete-confirmation" id="delete-confirmation">
+            <div class="delete-modal">
+                <h3>⚠️ データ削除確認</h3>
+                <p>以下のレコードを削除しますか？この操作は取り消せません。</p>
+                <div class="record-info" id="delete-record-info">
+                    <!-- 削除対象レコードの詳細がここに表示される -->
+                </div>
+                <div>
+                    <label for="delete-password">削除パスワードを入力してください:</label>
+                    <input type="password" id="delete-password" class="delete-password-input" placeholder="削除パスワード" autocomplete="off">
+                    <div class="password-error" id="password-error">パスワードが正しくありません</div>
+                </div>
+                <div class="delete-modal-buttons">
+                    <button class="delete-cancel-btn" id="delete-cancel-btn">キャンセル</button>
+                    <button class="delete-confirm-btn" id="delete-confirm-btn">削除実行</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 削除ログモーダル -->
+        <div class="delete-log-modal" id="delete-log-modal">
+            <div class="delete-log-content">
+                <h3>🗑️ 削除履歴</h3>
+                <p>削除されたレコードの履歴を表示しています。（3ヶ月間保持）</p>
+                <div id="delete-log-container">
+                    <!-- 削除ログがここに表示される -->
+                </div>
+                <button class="delete-log-close" id="delete-log-close">閉じる</button>
+            </div>
         </div>
     </div>
 
@@ -752,6 +1004,11 @@
                 this.searchResults = [];
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
+                this.isAllDataMode = false;
+                this.pendingDeleteId = null;
+                this.pendingDeleteIndex = null;
+                this.deleteLog = this.loadDeleteLog(); // 削除ログを読み込み
+                
                 // ここにあなたのAPIキーを貼り付けてください
                 this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
                 this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
@@ -846,6 +1103,7 @@
             async init() {
                 this.log('システム初期化中...', 'loading');
                 this.setupEventListeners();
+                this.setupDeleteListeners(); // 削除機能リスナーを追加
                 this.setDefaultDates();
                 
                 // APIキーが設定されている場合は自動接続
@@ -1170,6 +1428,7 @@
                 const searchForm = document.getElementById('search-form');
                 const exportBtn = document.getElementById('export-btn');
                 const allDataBtn = document.getElementById('all-data-btn');
+                const deleteLogBtn = document.getElementById('delete-log-btn');
 
                 searchForm.addEventListener('submit', (e) => {
                     e.preventDefault();
@@ -1182,6 +1441,10 @@
 
                 exportBtn.addEventListener('click', () => {
                     this.exportResults();
+                });
+
+                deleteLogBtn.addEventListener('click', () => {
+                    this.showDeleteLog();
                 });
             }
 
@@ -1229,6 +1492,7 @@
                 document.getElementById('details-title').textContent = '取引詳細';
                 document.getElementById('details-subtitle').textContent = '期間内の全取引データ（各列をクリックでソート）';
 
+                this.isAllDataMode = false; // モード記録
                 this.updateSummaryCards(storeName);
                 this.updateDetailsTable(false); // 店舗別検索モード
                 
@@ -1248,6 +1512,7 @@
                 document.getElementById('details-title').textContent = '全取引詳細';
                 document.getElementById('details-subtitle').textContent = '全期間・全店舗の取引データ（各列をクリックでソート）';
 
+                this.isAllDataMode = true; // モード記録
                 this.updateAllDataSummaryCards();
                 this.updateDetailsTable(true); // 全データ表示モード
                 
@@ -1511,15 +1776,17 @@
                 const detailsTable = document.getElementById('details-table');
                 
                 if (this.searchResults.length === 0) {
-                    detailsTable.innerHTML = '<tr><td colspan="7" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    detailsTable.innerHTML = '<tr><td colspan="8" class="no-results">検索条件に該当するデータがありません</td></tr>';
                     return;
                 }
 
-                detailsTable.innerHTML = this.searchResults.map(row => {
+                detailsTable.innerHTML = this.searchResults.map((row, index) => {
+                    const recordId = this.generateRecordId(row);
+                    
                     if (isAllData) {
                         // 全データ表示時: 貸主→借主の形で表示
                         return `
-                            <tr>
+                            <tr data-record-id="${recordId}">
                                 <td>${row.date}</td>
                                 <td><span class="type-tag type-貸出">貸借</span></td>
                                 <td>${row.lender} → ${row.borrower}</td>
@@ -1527,6 +1794,11 @@
                                 <td>${row.category}</td>
                                 <td class="amount">¥${row.amount.toLocaleString()}</td>
                                 <td>${row.name}</td>
+                                <td>
+                                    <button class="delete-btn" onclick="confirmDeleteRecord('${recordId}', ${index})">
+                                        🗑️ 削除
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     } else {
@@ -1538,7 +1810,7 @@
                         const amountClass = isLender ? 'positive' : 'negative';
 
                         return `
-                            <tr>
+                            <tr data-record-id="${recordId}">
                                 <td>${row.date}</td>
                                 <td><span class="type-tag type-${transactionType}">${transactionType}</span></td>
                                 <td>${counterpart}</td>
@@ -1546,6 +1818,11 @@
                                 <td>${row.category}</td>
                                 <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
                                 <td>${row.name}</td>
+                                <td>
+                                    <button class="delete-btn" onclick="confirmDeleteRecord('${recordId}', ${index})">
+                                        🗑️ 削除
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     }
@@ -1584,11 +1861,312 @@
 
                 this.log('CSV出力完了', 'success');
             }
+
+            // === 削除機能 ===
+            generateRecordId(row) {
+                // レコードを一意に識別するIDを生成
+                const idString = `${row.date}_${row.lender}_${row.borrower}_${row.item}_${row.amount}_${row.inputDate}`;
+                return btoa(idString).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+            }
+
+            async deleteRecord(recordId) {
+                try {
+                    this.log('レコード削除中...', 'loading');
+                    
+                    const targetRecord = this.searchResults.find(row => this.generateRecordId(row) === recordId);
+                    
+                    const deleteData = {
+                        action: 'delete',
+                        recordId: recordId,
+                        targetRecord: targetRecord
+                    };
+
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycbxvA-9qZDvzaXpegwBiYWhy0F54pt1TdsUb1RsCb6PckoA3tO4Z5z9m45amJ8Vsg-2z/exec`, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(deleteData)
+                    });
+
+                    // 削除ログを記録
+                    this.recordDeleteLog(targetRecord);
+
+                    // no-corsモードのため、成功を仮定して画面を更新
+                    this.log('レコードを削除しました', 'success');
+                    
+                    // ローカルデータから削除
+                    const recordIndex = this.searchResults.findIndex(row => this.generateRecordId(row) === recordId);
+                    if (recordIndex !== -1) {
+                        this.searchResults.splice(recordIndex, 1);
+                    }
+                    
+                    // データを再取得して最新状態に更新
+                    setTimeout(() => {
+                        this.connectToGoogleSheets();
+                    }, 2000);
+
+                    return true;
+                } catch (error) {
+                    console.error('削除エラー:', error);
+                    this.log('削除に失敗しました: ' + error.message, 'error');
+                    return false;
+                }
+            }
+
+            // === 削除ログ機能（3ヶ月保持） ===
+            recordDeleteLog(record) {
+                const deleteEntry = {
+                    timestamp: new Date().toISOString(),
+                    date: record.date,
+                    lender: record.lender,
+                    borrower: record.borrower,
+                    item: record.item,
+                    category: record.category,
+                    amount: record.amount,
+                    name: record.name,
+                    inputDate: record.inputDate
+                };
+
+                this.deleteLog.unshift(deleteEntry); // 新しいログを先頭に追加
+                
+                // 3ヶ月以上古いログを削除
+                this.cleanupOldDeleteLogs();
+                
+                // 最大100件まで保持（3ヶ月フィルタ後）
+                if (this.deleteLog.length > 100) {
+                    this.deleteLog = this.deleteLog.slice(0, 100);
+                }
+
+                this.saveDeleteLog();
+                console.log('削除ログを記録しました:', deleteEntry);
+            }
+
+            cleanupOldDeleteLogs() {
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                
+                const beforeCount = this.deleteLog.length;
+                this.deleteLog = this.deleteLog.filter(log => {
+                    const logDate = new Date(log.timestamp);
+                    return logDate >= threeMonthsAgo;
+                });
+                
+                const deletedCount = beforeCount - this.deleteLog.length;
+                if (deletedCount > 0) {
+                    console.log(`3ヶ月以上古い削除ログを${deletedCount}件削除しました`);
+                }
+            }
+
+            loadDeleteLog() {
+                try {
+                    const stored = localStorage.getItem('deleteLog');
+                    if (stored) {
+                        this.deleteLog = JSON.parse(stored);
+                        // 読み込み時にも古いログをクリーンアップ
+                        this.cleanupOldDeleteLogs();
+                        this.saveDeleteLog(); // クリーンアップ後に保存
+                        return this.deleteLog;
+                    }
+                    return [];
+                } catch (error) {
+                    console.error('削除ログ読み込みエラー:', error);
+                    return [];
+                }
+            }
+
+            saveDeleteLog() {
+                try {
+                    localStorage.setItem('deleteLog', JSON.stringify(this.deleteLog));
+                } catch (error) {
+                    console.error('削除ログ保存エラー:', error);
+                }
+            }
+
+            showDeleteLog() {
+                const deleteLogModal = document.getElementById('delete-log-modal');
+                const deleteLogContainer = document.getElementById('delete-log-container');
+
+                // 表示前にも古いログをクリーンアップ
+                this.cleanupOldDeleteLogs();
+
+                if (this.deleteLog.length === 0) {
+                    deleteLogContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">削除履歴はありません</p>';
+                } else {
+                    let tableHTML = `
+                        <table class="delete-log-table">
+                            <thead>
+                                <tr>
+                                    <th>削除日時</th>
+                                    <th>取引日</th>
+                                    <th>貸主</th>
+                                    <th>借主</th>
+                                    <th>品目</th>
+                                    <th>金額</th>
+                                    <th>入力者</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    this.deleteLog.forEach(log => {
+                        const deleteTime = new Date(log.timestamp).toLocaleString('ja-JP');
+                        tableHTML += `
+                            <tr>
+                                <td>${deleteTime}</td>
+                                <td>${log.date}</td>
+                                <td>${log.lender}</td>
+                                <td>${log.borrower}</td>
+                                <td>${log.item}</td>
+                                <td>¥${log.amount.toLocaleString()}</td>
+                                <td>${log.name}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                        <p style="text-align: center; color: #666; margin-top: 15px;">
+                            合計 ${this.deleteLog.length} 件の削除履歴（3ヶ月以内）
+                        </p>
+                    `;
+
+                    deleteLogContainer.innerHTML = tableHTML;
+                }
+
+                deleteLogModal.style.display = 'flex';
+            }
+
+            setupDeleteListeners() {
+                const deleteConfirmation = document.getElementById('delete-confirmation');
+                const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+                const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+                const deletePasswordInput = document.getElementById('delete-password');
+                const passwordError = document.getElementById('password-error');
+                const deleteLogModal = document.getElementById('delete-log-modal');
+                const deleteLogClose = document.getElementById('delete-log-close');
+
+                deleteCancelBtn.addEventListener('click', () => {
+                    this.closeDeleteModal();
+                });
+
+                deleteConfirmBtn.addEventListener('click', async () => {
+                    const password = deletePasswordInput.value;
+                    
+                    // パスワード検証
+                    if (password !== 'delete') {
+                        passwordError.style.display = 'block';
+                        deletePasswordInput.focus();
+                        return;
+                    }
+                    
+                    passwordError.style.display = 'none';
+                    
+                    if (this.pendingDeleteId) {
+                        deleteConfirmBtn.disabled = true;
+                        deleteConfirmBtn.textContent = '削除中...';
+                        
+                        const success = await this.deleteRecord(this.pendingDeleteId);
+                        
+                        if (success) {
+                            this.closeDeleteModal();
+                            // 表示を更新
+                            this.updateDetailsTable(this.isAllDataMode);
+                            this.updateSummaryCardsAfterDelete();
+                        }
+                        
+                        deleteConfirmBtn.disabled = false;
+                        deleteConfirmBtn.textContent = '削除実行';
+                    }
+                });
+
+                // パスワード入力時のエラーメッセージリセット
+                deletePasswordInput.addEventListener('input', () => {
+                    passwordError.style.display = 'none';
+                });
+
+                // 削除ログモーダル関連
+                deleteLogClose.addEventListener('click', () => {
+                    deleteLogModal.style.display = 'none';
+                });
+
+                // モーダル外クリックで閉じる
+                deleteConfirmation.addEventListener('click', (e) => {
+                    if (e.target === deleteConfirmation) {
+                        this.closeDeleteModal();
+                    }
+                });
+
+                deleteLogModal.addEventListener('click', (e) => {
+                    if (e.target === deleteLogModal) {
+                        deleteLogModal.style.display = 'none';
+                    }
+                });
+            }
+
+            closeDeleteModal() {
+                const deleteConfirmation = document.getElementById('delete-confirmation');
+                const deletePasswordInput = document.getElementById('delete-password');
+                const passwordError = document.getElementById('password-error');
+                
+                deleteConfirmation.style.display = 'none';
+                deletePasswordInput.value = '';
+                passwordError.style.display = 'none';
+                this.pendingDeleteId = null;
+                this.pendingDeleteIndex = null;
+            }
+
+            updateSummaryCardsAfterDelete() {
+                if (this.isAllDataMode) {
+                    this.updateAllDataSummaryCards();
+                } else {
+                    const storeName = document.getElementById('store-name').value;
+                    if (storeName) {
+                        this.updateSummaryCards(storeName);
+                    }
+                }
+            }
+        }
+
+        // === グローバル削除機能 ===
+        let appInstance = null;
+
+        // 削除確認モーダルを表示
+        function confirmDeleteRecord(recordId, index) {
+            if (!appInstance) return;
+
+            const record = appInstance.searchResults[index];
+            if (!record) {
+                alert('削除対象のレコードが見つかりません');
+                return;
+            }
+
+            // 削除対象レコードの情報を表示
+            const recordInfo = document.getElementById('delete-record-info');
+            recordInfo.innerHTML = `
+                <strong>日付:</strong> ${record.date}<br>
+                <strong>貸主:</strong> ${record.lender}<br>
+                <strong>借主:</strong> ${record.borrower}<br>
+                <strong>品目:</strong> ${record.item}<br>
+                <strong>カテゴリー:</strong> ${record.category}<br>
+                <strong>金額:</strong> ¥${record.amount.toLocaleString()}<br>
+                <strong>入力者:</strong> ${record.name}<br>
+                <strong>入力日時:</strong> ${record.inputDate}
+            `;
+
+            // 削除対象の情報を保存
+            appInstance.pendingDeleteId = recordId;
+            appInstance.pendingDeleteIndex = index;
+
+            // モーダル表示
+            document.getElementById('delete-confirmation').style.display = 'flex';
         }
 
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
-            new GoogleSheetsAPIAnalyzer();
+            appInstance = new GoogleSheetsAPIAnalyzer();
         });
     </script>
 </body>

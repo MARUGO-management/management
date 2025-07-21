@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>店舗別貸借分析システム</title>
     <style>
+        /* 既存のCSSは変更なし */
         * {
             margin: 0;
             padding: 0;
@@ -522,6 +523,103 @@
             transform: translateY(-2px);
         }
 
+        /* 削除ボタンのスタイル */
+        .delete-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-left: 10px;
+            white-space: nowrap; /* ボタンが改行されないように */
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* カスタム確認ダイアログのスタイル */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .custom-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .custom-modal {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .custom-modal-overlay.active .custom-modal {
+            transform: translateY(0);
+        }
+
+        .custom-modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .custom-modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .custom-modal-btn {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+        }
+
+        .custom-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-modal-btn.confirm {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .custom-modal-btn.cancel {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+
+
         @media (max-width: 768px) {
             .search-form {
                 grid-template-columns: 1fr;
@@ -611,7 +709,7 @@
         <div class="status-section">
             <h3>📈 システム状態</h3>
             <div id="status-info" class="status-info">
-                APIキーを入力して接続を開始してください
+                システム初期化中...
             </div>
             <button id="debug-btn" class="retry-btn" style="display: none; margin-top: 10px;">
                 🐛 詳細デバッグ情報を表示
@@ -669,6 +767,7 @@
                                 <th class="sortable" onclick="sortTable(4)">カテゴリー</th>
                                 <th class="sortable" onclick="sortTable(5)">金額</th>
                                 <th class="sortable" onclick="sortTable(6)">入力者</th>
+                                <th>操作</th> <!-- 新しい列: 操作 -->
                             </tr>
                         </thead>
                         <tbody id="details-table">
@@ -682,6 +781,17 @@
             </div>
         </div>
         <!-- メインアプリケーション終了 -->
+        </div>
+    </div>
+
+    <!-- カスタム確認ダイアログのHTML -->
+    <div id="custom-confirm-overlay" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <h3 id="custom-confirm-message"></h3>
+            <div class="custom-modal-buttons">
+                <button id="custom-confirm-yes" class="custom-modal-btn confirm">はい</button>
+                <button id="custom-confirm-no" class="custom-modal-btn cancel">いいえ</button>
+            </div>
         </div>
     </div>
 
@@ -717,8 +827,13 @@
             
             // ソート実行
             rows.sort((a, b) => {
-                const aText = a.cells[columnIndex].textContent.trim();
-                const bText = b.cells[columnIndex].textContent.trim();
+                // 削除ボタン列を考慮してcolumnIndexを調整
+                // 列数が8の場合（削除ボタンあり）はそのまま、7の場合（削除ボタンなし）は調整不要
+                // 現在のテーブルは常に8列なので、columnIndexはそのまま使用
+                const actualColumnIndex = columnIndex; 
+
+                const aText = a.cells[actualColumnIndex].textContent.trim();
+                const bText = b.cells[actualColumnIndex].textContent.trim();
                 
                 let comparison = 0;
                 
@@ -748,20 +863,20 @@
 
         class GoogleSheetsAPIAnalyzer {
             constructor() {
-                this.data = [];
-                this.searchResults = [];
+                this.data = []; // スプレッドシートから取得した全データ
+                this.searchResults = []; // 検索結果データ
                 this.statusDiv = document.getElementById('status-info');
                 this.stores = new Set();
-                // ここにあなたのAPIキーを貼り付けてください
-                this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
-                this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
-                this.sheetName = '貸借記録';
                 
+                // APIキーとスプレッドシートIDはGAS側で管理するため、クライアントサイドからは削除
+                // this.apiKey = 'AIzaSyAcy7hXztCjngG2poP-Sn_g6ED0TESnNTE';
+                // this.spreadsheetId = '1RmmYz4R7QlJz_wG8dkFZzPBTiSLagr8u04O5pTxK4j8';
+                this.sheetName = '貸借記録'; // GAS側と合わせる
+
                 // パスワード設定（実際の運用では環境変数やサーバーサイドで管理）
                 this.correctPasswords = [
                     'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', // "hello"
                     'e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317', // "marugo"
-                    
                 ];
                 
                 this.initAuth();
@@ -848,12 +963,8 @@
                 this.setupEventListeners();
                 this.setDefaultDates();
                 
-                // APIキーが設定されている場合は自動接続
-                if (this.apiKey !== 'YOUR_API_KEY_HERE') {
-                    await this.connectToGoogleSheets();
-                } else {
-                    this.log('APIキーを設定してください', 'error');
-                }
+                // APIキーの代わりにGAS関数を呼び出す
+                await this.connectToGoogleSheets();
             }
 
             debugLog(message, data = null) {
@@ -901,87 +1012,56 @@
                 console.log(logEntry);
             }
 
+            // Google Sheets API の代わりにGAS関数を呼び出す
             async connectToGoogleSheets() {
-                if (!this.apiKey || this.apiKey === 'YOUR_API_KEY_HERE') {
-                    this.log('APIキーが設定されていません', 'error');
-                    return;
-                }
-
-                this.log('Google Sheets API に接続中...', 'loading');
+                this.log('Google Apps Script からデータを取得中...', 'loading');
                 this.showDebugInfo();
 
                 try {
-                    // まず、スプレッドシートの情報を取得してシート名を確認
-                    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}?key=${this.apiKey}`;
-                    
-                    this.debugLog('メタデータ取得 URL', metadataUrl);
-                    
-                    const metadataResponse = await fetch(metadataUrl);
-                    
-                    if (!metadataResponse.ok) {
-                        throw new Error(`メタデータ取得失敗: ${metadataResponse.status} ${metadataResponse.statusText}`);
-                    }
-                    
-                    const metadata = await metadataResponse.json();
-                    this.debugLog('スプレッドシート情報', metadata);
-                    
-                    // 最初のシートの名前を取得
-                    const firstSheetName = metadata.sheets[0].properties.title;
-                    this.debugLog('使用するシート名', firstSheetName);
-                    
-                    // Google Sheets API v4 を使用してデータを取得
-                    const range = `${firstSheetName}!A:Z`; // 全列を取得
-                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`;
-                    
-                    this.debugLog('API リクエスト URL', url);
-                    
-                    const response = await fetch(url);
-                    
-                    this.debugLog('API レスポンス', {
-                        status: response.status,
-                        statusText: response.statusText
-                    });
-                    
-                    if (!response.ok) {
-                        if (response.status === 403) {
-                            throw new Error('APIキーが無効または権限が不足しています。APIキーとスプレッドシートの共有設定を確認してください。');
-                        } else if (response.status === 400) {
-                            throw new Error('スプレッドシートIDまたはシート名が正しくありません。');
-                        } else {
-                            throw new Error(`API エラー: ${response.status} ${response.statusText}`);
-                        }
-                    }
-                    
-                    const data = await response.json();
-                    this.debugLog('取得データ', data);
-                    
-                    if (!data.values || data.values.length === 0) {
-                        throw new Error('スプレッドシートにデータが見つかりません。');
-                    }
-                    
-                    this.log('データ取得成功', 'success');
-                    await this.processSheetData(data.values);
-                    this.populateStoreDropdown();
-                    
-                    this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
-                    
-                    document.getElementById('search-section').style.display = 'block';
-                    
+                    // google.script.run を使用してGASの getSheetData 関数を呼び出す
+                    // 成功時のコールバックと失敗時のコールバックを設定
+                    google.script.run
+                        .withSuccessHandler(this.handleSheetData.bind(this))
+                        .withFailureHandler(this.handleApiError.bind(this))
+                        .getSheetData();
                 } catch (error) {
                     this.log(`接続エラー: ${error.message}`, 'error');
                     this.debugLog('接続エラー詳細', error);
                 }
             }
 
-            async processSheetData(values) {
+            // GASからデータを受け取った際のハンドラ
+            handleSheetData(response) {
+                if (!response || !response.values) {
+                    this.log('スプレッドシートにデータが見つかりません。', 'error');
+                    this.debugLog('データ取得応答が不正', response);
+                    return;
+                }
+
+                this.log('データ取得成功', 'success');
+                this.processSheetData(response.headers, response.values); // ヘッダーも渡す
+                this.populateStoreDropdown();
+                
+                this.log(`データ読み込み完了！${this.data.length}件のレコード、${this.stores.size}店舗`, 'success');
+                
+                document.getElementById('search-section').style.display = 'block';
+            }
+
+            // GAS呼び出し失敗時のハンドラ
+            handleApiError(error) {
+                this.log(`GASエラー: ${error.message}`, 'error');
+                this.debugLog('GASエラー詳細', error);
+            }
+
+            async processSheetData(headers, values) {
                 this.log('データを解析中...', 'loading');
                 
                 if (values.length === 0) {
-                    throw new Error('データが空です');
+                    this.data = []; // データがない場合は空にする
+                    this.stores.clear(); // 店舗情報もクリア
+                    return;
                 }
 
-                // ヘッダー行を取得
-                const headers = values[0];
                 this.debugLog('ヘッダー行', headers);
                 
                 // フィールドマッピング
@@ -1011,14 +1091,18 @@
                 const itemIndex = getColumnIndex(['品目', 'item']);
                 const amountIndex = getColumnIndex(['金額', 'amount']);
                 const inputDateIndex = getColumnIndex(['入力日時', 'inputDate']);
+                // GAS側で追加したユーザー情報列も考慮するが、ここでは使用しない
 
                 this.debugLog('フィールドインデックス', {
                     dateIndex, nameIndex, lenderIndex, borrowerIndex, 
                     categoryIndex, itemIndex, amountIndex, inputDateIndex
                 });
 
-                // データ行を処理（ヘッダーをスキップ）
-                this.data = values.slice(1).map((row, index) => {
+                // 店舗情報を一度クリアしてから再収集
+                this.stores.clear();
+
+                // データ行を処理
+                this.data = values.map((row, index) => {
                     const getValue = (colIndex) => colIndex !== -1 && row[colIndex] ? row[colIndex] : '';
                     
                     let extractedDate = '';
@@ -1037,7 +1121,9 @@
                         item: getValue(itemIndex),
                         amount: this.parseAmount(getValue(amountIndex)),
                         originalAmount: getValue(amountIndex),
-                        inputDate: getValue(inputDateIndex)
+                        inputDate: getValue(inputDateIndex),
+                        // 各行にユニークなIDを付与（クライアントサイドでの管理用）
+                        id: `row-${index}-${Date.now()}` 
                     };
 
                     // 店舗名を収集
@@ -1105,41 +1191,48 @@
                 if (!dateTimeStr) return '';
                 
                 try {
+                    // YYYY-MM-DD 形式はそのまま返す
                     if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr)) {
                         return dateTimeStr;
                     }
                     
+                    // Dateオブジェクトに変換可能ならISO形式の日付部分を返す
                     const date = new Date(dateTimeStr);
                     if (!isNaN(date.getTime())) {
                         return date.toISOString().split('T')[0];
                     }
                     
+                    // 日本語の日付形式 (YYYY年MM月DD日)
                     const japaneseMatch = dateTimeStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
                     if (japaneseMatch) {
                         const [, year, month, day] = japaneseMatch;
                         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                     }
                     
+                    // スラッシュ区切りの日付形式 (YYYY/MM/DD)
                     const slashMatch = dateTimeStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
                     if (slashMatch) {
                         const [, year, month, day] = slashMatch;
                         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                     }
                     
+                    // ハイフン区切りの日付形式 (YYYY-MM-DD)
                     const hyphenMatch = dateTimeStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
                     if (hyphenMatch) {
                         const [, year, month, day] = hyphenMatch;
                         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                     }
                     
-                    return '';
+                    return ''; // どの形式にもマッチしない場合
                 } catch (error) {
+                    console.error("日付解析エラー:", error);
                     return '';
                 }
             }
 
             parseAmount(amountStr) {
                 if (!amountStr) return 0;
+                // 全角数字を半角に変換し、カンマやスペースを除去
                 const normalized = amountStr.toString().replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
                 const cleaned = normalized.replace(/[,\s]/g, '');
                 return parseFloat(cleaned) || 0;
@@ -1267,8 +1360,6 @@
                 const countByCategory = { '食材': 0, '飲料': 0, 'その他': 0 };
                 const storeTransactions = {};
                 
-                let totalAmount = 0;
-                
                 this.searchResults.forEach(row => {
                     // カテゴリーの正規化
                     let category = row.category || 'その他';
@@ -1300,6 +1391,7 @@
                         category = 'その他';
                     }
                     
+                    let totalAmount = 0; // ループ内で初期化しない
                     totalAmount += row.amount;
                     totalByCategory[category] += row.amount;
                     countByCategory[category]++;
@@ -1317,6 +1409,10 @@
                     storeTransactions[row.borrower].borrowed += row.amount;
                     storeTransactions[row.borrower].count++;
                 });
+
+                // totalAmount をループの外で計算し直す
+                let totalAmount = this.searchResults.reduce((sum, row) => sum + row.amount, 0);
+
 
                 // 最も活発な店舗（取引件数ベース）
                 const mostActiveStore = Object.entries(storeTransactions)
@@ -1351,8 +1447,7 @@
                         <div class="value">${Object.keys(storeTransactions).length}</div>
                         <p>店舗</p>
                         <div class="breakdown">
-                            最多取引: ${mostActiveStore ? mostActiveStore[0] : 'なし'}<br>
-                            ${mostActiveStore ? `(${mostActiveStore[1].count}件)` : ''}
+                            ${mostActiveStore ? `最多取引: ${mostActiveStore[0]}<br>(${mostActiveStore[1].count}件)` : 'なし'}
                         </div>
                     </div>
                     <div class="summary-card neutral">
@@ -1511,15 +1606,17 @@
                 const detailsTable = document.getElementById('details-table');
                 
                 if (this.searchResults.length === 0) {
-                    detailsTable.innerHTML = '<tr><td colspan="7" class="no-results">検索条件に該当するデータがありません</td></tr>';
+                    detailsTable.innerHTML = '<tr><td colspan="8" class="no-results">検索条件に該当するデータがありません</td></tr>'; // 列数を8に更新
                     return;
                 }
 
-                detailsTable.innerHTML = this.searchResults.map(row => {
+                detailsTable.innerHTML = this.searchResults.map((row) => {
+                    // row.id はクライアントサイドのユニークID。GASにはrowデータ全体を渡す。
+                    // data-row-id 属性でクライアントサイドのIDを保持し、イベントリスナーでrowDataを取得
                     if (isAllData) {
                         // 全データ表示時: 貸主→借主の形で表示
                         return `
-                            <tr>
+                            <tr data-row-id="${row.id}">
                                 <td>${row.date}</td>
                                 <td><span class="type-tag type-貸出">貸借</span></td>
                                 <td>${row.lender} → ${row.borrower}</td>
@@ -1527,6 +1624,7 @@
                                 <td>${row.category}</td>
                                 <td class="amount">¥${row.amount.toLocaleString()}</td>
                                 <td>${row.name}</td>
+                                <td><button class="delete-btn" data-row-id="${row.id}">削除</button></td>
                             </tr>
                         `;
                     } else {
@@ -1538,7 +1636,7 @@
                         const amountClass = isLender ? 'positive' : 'negative';
 
                         return `
-                            <tr>
+                            <tr data-row-id="${row.id}">
                                 <td>${row.date}</td>
                                 <td><span class="type-tag type-${transactionType}">${transactionType}</span></td>
                                 <td>${counterpart}</td>
@@ -1546,18 +1644,102 @@
                                 <td>${row.category}</td>
                                 <td class="amount ${amountClass}">¥${row.amount.toLocaleString()}</td>
                                 <td>${row.name}</td>
+                                <td><button class="delete-btn" data-row-id="${row.id}">削除</button></td>
                             </tr>
                         `;
                     }
                 }).join('');
 
+                // 各削除ボタンにイベントリスナーを追加
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const rowIdToDelete = e.target.dataset.rowId;
+                        // this.data から対応する行データを取得
+                        const rowData = this.data.find(row => row.id === rowIdToDelete);
+
+                        if (rowData) {
+                            const message = `以下の取引を削除しますか？\n\n日付: ${rowData.date}\n取引名: ${rowData.name}\n金額: ¥${rowData.amount.toLocaleString()}`;
+                            
+                            this.showConfirmDialog(message).then(result => {
+                                if (result) {
+                                    this.deleteRow(rowData); // rowDataを直接GASに渡す
+                                }
+                            });
+                        } else {
+                            this.log('削除対象のデータが見つかりません', 'error');
+                        }
+                    });
+                });
+
                 // テーブルデータを保存（ソート用）
                 currentTableData = this.searchResults;
             }
 
+            // カスタム確認ダイアログを表示する関数
+            showConfirmDialog(message) {
+                return new Promise(resolve => {
+                    const overlay = document.getElementById('custom-confirm-overlay');
+                    const messageElem = document.getElementById('custom-confirm-message');
+                    const yesBtn = document.getElementById('custom-confirm-yes');
+                    const noBtn = document.getElementById('custom-confirm-no');
+
+                    messageElem.textContent = message;
+                    overlay.classList.add('active');
+
+                    const cleanup = () => {
+                        overlay.classList.remove('active');
+                        yesBtn.onclick = null;
+                        noBtn.onclick = null;
+                    };
+
+                    yesBtn.onclick = () => {
+                        cleanup();
+                        resolve(true);
+                    };
+
+                    noBtn.onclick = () => {
+                        cleanup();
+                        resolve(false);
+                    };
+                });
+            }
+
+            // 指定されたレコードをGAS経由で削除し、テーブルを更新する
+            deleteRow(rowDataToDelete) {
+                this.log('GAS経由でデータを削除中...', 'loading');
+                // google.script.run はHTMLがGASのWebアプリとしてデプロイされている場合にのみ利用可能
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    google.script.run
+                        .withSuccessHandler(this.handleDeleteSuccess.bind(this))
+                        .withFailureHandler(this.handleApiError.bind(this))
+                        .deleteRecord(rowDataToDelete); // rowData全体をGASに渡す
+                } else {
+                    this.log('エラー: google.script.run が利用できません。GASウェブアプリとしてデプロイしてください。', 'error');
+                    // GASが利用できない場合は、クライアントサイドのデータのみ削除（以前の挙動）
+                    const index = this.data.findIndex(row => row.id === rowDataToDelete.id);
+                    if (index > -1) {
+                        this.data.splice(index, 1);
+                        this.searchResults = this.searchResults.filter(row => row.id !== rowDataToDelete.id);
+                        this.log(`（クライアントサイドのみ）データ削除完了: ${rowDataToDelete.name}`, 'success');
+                        this.displayAllDataResults(); // 再描画
+                    }
+                }
+            }
+
+            // GASからの削除成功時のハンドラ
+            handleDeleteSuccess(result) {
+                if (result.status === 'success') {
+                    this.log(`データ削除完了: 行${result.deletedRow}`, 'success');
+                    // データが削除されたので、スプレッドシートから最新データを再取得して表示を更新
+                    this.connectToGoogleSheets(); 
+                } else {
+                    this.log(`データ削除失敗: ${result.message}`, 'error');
+                }
+            }
+
             exportResults() {
                 if (this.searchResults.length === 0) {
-                    alert('エクスポートするデータがありません');
+                    this.showConfirmDialog('エクスポートするデータがありません').then(() => {}); // カスタムダイアログを使用
                     return;
                 }
 

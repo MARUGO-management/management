@@ -1,14 +1,14 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxvA-9qZDvzaXpegwBiYWhy0F54pt1TdsUb1RsCb6PckoA3tO4Z5z9m45amJ8Vsg-2z/exec";
 const shops = [
-  "MARUGO‑D", "MARUGO‑OTTO", "元祖どないや新宿三丁目", "鮨こるり",
+  "MARUGO窶船", "MARUGO窶前TTO", "蜈�･悶←縺ｪ縺�ｄ譁ｰ螳ｿ荳我ｸ∫岼", "魄ｨ縺薙ｋ繧�",
   "MARUGO", "MARUGO2", "MARUGO GRANDE", "MARUGO MARUNOUCHI",
-  "マルゴ新橋", "MARUGO YOTSUYA", "371BAR", "三三五五",
+  "繝槭Ν繧ｴ譁ｰ讖�", "MARUGO YOTSUYA", "371BAR", "荳我ｸ我ｺ比ｺ�",
   "BAR PELOTA", "Claudia2", "BISTRO CAVACAVA", "eric'S",
-  "MITAN", "焼肉マルゴ", "SOBA‑JU", "Bar Violet",
-  "X&C", "トラットリア ブリッコラ"
+  "MITAN", "辟ｼ閧峨�繝ｫ繧ｴ", "SOBA窶遷U", "Bar Violet",
+  "X&C", "繝医Λ繝�ヨ繝ｪ繧｢ 繝悶Μ繝�さ繝ｩ"
 ];
 
-// 店舗データで貸主・借主のオプションを設定
+// 蠎苓�繝��繧ｿ縺ｧ雋ｸ荳ｻ繝ｻ蛟滉ｸｻ縺ｮ繧ｪ繝励す繝ｧ繝ｳ繧定ｨｭ螳�
 function populateShops() {
   const lenderSelect = document.getElementById("lender");
   const borrowerSelect = document.getElementById("borrower");
@@ -26,12 +26,12 @@ function populateShops() {
   });
 }
 
-// DOM要素の初期化
+// DOM隕∫ｴ 縺ｮ蛻晄悄蛹�
 function initializeElements() {
-  // 今日の日付を自動設定
+  // 莉頑律縺ｮ譌･莉倥ｒ閾ｪ蜍戊ｨｭ螳�
   document.getElementById('date').valueAsDate = new Date();
 
-  // カテゴリー選択の処理
+  // 繧ｫ繝�ざ繝ｪ繝ｼ驕ｸ謚槭�蜃ｦ逅�
   const categoryOptions = document.querySelectorAll('.category-option');
   const categoryInput = document.getElementById('category');
 
@@ -43,7 +43,7 @@ function initializeElements() {
     });
   });
 
-  // 金額入力の自動フォーマット
+  // 驥鷹｡榊�蜉帙�閾ｪ蜍輔ヵ繧ｩ繝ｼ繝槭ャ繝�
   const amountInput = document.getElementById('amount');
   amountInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9]/g, '');
@@ -53,7 +53,7 @@ function initializeElements() {
     e.target.value = value;
   });
 
-  // フォーム送信処理
+  // 繝輔か繝ｼ繝 騾∽ｿ｡蜃ｦ逅�
   const form = document.getElementById('loanForm');
   const submitBtn = document.querySelector('.submit-btn');
   const successMessage = document.getElementById('successMessage');
@@ -61,21 +61,21 @@ function initializeElements() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // バリデーション
+    // 繝舌Μ繝��繧ｷ繝ｧ繝ｳ
     if (!categoryInput.value) {
-      alert('カテゴリーを選択してください');
+      alert('繧ｫ繝�ざ繝ｪ繝ｼ繧帝∈謚槭＠縺ｦ縺上□縺輔＞');
       return;
     }
 
-    // ローディング状態開始
+    // 繝ｭ繝ｼ繝�ぅ繝ｳ繧ｰ迥ｶ諷矩幕蟋�
     submitBtn.classList.add('loading');
-    submitBtn.querySelector('.btn-text').textContent = '送信中...';
+    submitBtn.querySelector('.btn-text').textContent = '騾∽ｿ｡荳ｭ...';
     submitBtn.disabled = true;
 
     try {
-      // 金額の正規化（全角数字を半角に変換）
+      // 驥鷹｡阪�豁｣隕丞喧�亥�隗呈焚蟄励ｒ蜊願ｧ偵↓螟画鋤��
       const amountRaw = document.getElementById("amount").value;
-      const normalizedAmount = amountRaw.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
+      const normalizedAmount = amountRaw.replace(/[��-�兢/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
 
       const userAgent = navigator.userAgent;
 
@@ -92,7 +92,7 @@ function initializeElements() {
         userAgent: userAgent
       };
 
-      // Google Apps Scriptに送信
+      // Google Apps Script縺ｫ騾∽ｿ｡
       await fetch(GAS_URL, {
         method: "POST",
         mode: "no-cors",
@@ -102,45 +102,45 @@ function initializeElements() {
         body: JSON.stringify(data)
       });
 
-      // 成功処理
+      // 謌仙粥蜃ｦ逅�
       setTimeout(() => {
-        // ローディング状態終了
+        // 繝ｭ繝ｼ繝�ぅ繝ｳ繧ｰ迥ｶ諷狗ｵゆｺ�
         submitBtn.classList.remove('loading');
-        submitBtn.querySelector('.btn-text').textContent = '📨 送信する';
+        submitBtn.querySelector('.btn-text').textContent = '鐙 騾∽ｿ｡縺吶ｋ';
         submitBtn.disabled = false;
 
-        // 成功メッセージ表示
+        // 謌仙粥繝｡繝�そ繝ｼ繧ｸ陦ｨ遉ｺ
         successMessage.classList.add('show');
         setTimeout(() => {
           successMessage.classList.remove('show');
         }, 3000);
 
-        // フォームリセット
+        // 繝輔か繝ｼ繝 繝ｪ繧ｻ繝�ヨ
         form.reset();
         categoryOptions.forEach(opt => opt.classList.remove('selected'));
         document.getElementById('date').valueAsDate = new Date();
       }, 1000);
 
     } catch (error) {
-      console.error('送信エラー:', error);
+      console.error('騾∽ｿ｡繧ｨ繝ｩ繝ｼ:', error);
 
-      // エラー処理
+      // 繧ｨ繝ｩ繝ｼ蜃ｦ逅�
       submitBtn.classList.remove('loading');
-      submitBtn.querySelector('.btn-text').textContent = '📨 送信する';
+      submitBtn.querySelector('.btn-text').textContent = '鐙 騾∽ｿ｡縺吶ｋ';
       submitBtn.disabled = false;
 
-      alert('送信に失敗しました。再度お試しください。');
+      alert('騾∽ｿ｡縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ょ�蠎ｦ縺願ｩｦ縺励￥縺 縺輔＞縲�');
     }
   });
 }
 
-// 初期化処理
+// 蛻晄悄蛹門�逅�
 function initialize() {
   populateShops();
   initializeElements();
 }
 
-// ページが完全に読み込まれた後に実行
+// 繝壹�繧ｸ縺悟ｮ悟�縺ｫ隱ｭ縺ｿ霎ｼ縺ｾ繧後◆蠕後↓螳溯｡�
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialize);
 } else {

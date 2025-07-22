@@ -1,4 +1,5 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwPGw22--eubipb0a1lQeRC0fVf4zn7cMYrhgHbnhi4679C-Uih_gjv_ytahG27eqRf/exec";
+
 const shops = [
   "MARUGO‑D", "MARUGO‑OTTO", "元祖どないや新宿三丁目", "鮨こるり",
   "MARUGO", "MARUGO2", "MARUGO GRANDE", "MARUGO MARUNOUCHI",
@@ -30,6 +31,12 @@ function populateShops() {
 function initializeElements() {
   // 今日の日付を自動設定
   document.getElementById('date').valueAsDate = new Date();
+
+  // DEVICE情報をhiddenフィールドにセット
+  const deviceField = document.getElementById("device");
+  if (deviceField) {
+    deviceField.value = detectDeviceInfo();
+  }
 
   // カテゴリー選択の処理
   const categoryOptions = document.querySelectorAll('.category-option');
@@ -89,13 +96,13 @@ function initializeElements() {
         amount: normalizedAmount,
         displayName: "",
         userId: "",
-        userAgent: userAgent
+        userAgent: userAgent,
+        device: document.getElementById("device")?.value || ""
       };
 
-      // Google Apps Scriptに送信
       await fetch(GAS_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "no-cors",  // 必要に応じて 'cors' に
         headers: {
           "Content-Type": "application/json"
         },
@@ -104,34 +111,55 @@ function initializeElements() {
 
       // 成功処理
       setTimeout(() => {
-        // ローディング状態終了
         submitBtn.classList.remove('loading');
         submitBtn.querySelector('.btn-text').textContent = '📨 送信する';
         submitBtn.disabled = false;
 
-        // 成功メッセージ表示
         successMessage.classList.add('show');
         setTimeout(() => {
           successMessage.classList.remove('show');
         }, 3000);
 
-        // フォームリセット
         form.reset();
         categoryOptions.forEach(opt => opt.classList.remove('selected'));
         document.getElementById('date').valueAsDate = new Date();
+        if (deviceField) {
+          deviceField.value = detectDeviceInfo(); // 再セット
+        }
+
       }, 1000);
 
     } catch (error) {
       console.error('送信エラー:', error);
-
-      // エラー処理
       submitBtn.classList.remove('loading');
       submitBtn.querySelector('.btn-text').textContent = '📨 送信する';
       submitBtn.disabled = false;
-
       alert('送信に失敗しました。再度お試しください。');
     }
   });
+}
+
+// 端末情報を判定して返す
+function detectDeviceInfo() {
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const width = window.screen?.width;
+  const height = window.screen?.height;
+
+  let os = "Other";
+  if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+  else if (/Android/i.test(ua)) os = "Android";
+  else if (/Macintosh|Mac OS X/i.test(ua)) os = "macOS";
+  else if (/Win/i.test(ua)) os = "Windows";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  let browser = "Other";
+  if (/Edg\//i.test(ua)) browser = "Edge";
+  else if (/CriOS|Chrome\//i.test(ua)) browser = "Chrome";
+  else if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) browser = "Safari";
+  else if (/Firefox\//i.test(ua)) browser = "Firefox";
+
+  return `${os}/${browser} ${width}x${height} ${platform}`;
 }
 
 // 初期化処理
@@ -140,7 +168,6 @@ function initialize() {
   initializeElements();
 }
 
-// ページが完全に読み込まれた後に実行
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialize);
 } else {

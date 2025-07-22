@@ -140,3 +140,4 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(initialize, 0); // 念のため非同期遅延
 }
+console.log("🧪 device:", document.getElementById("device")?.value);

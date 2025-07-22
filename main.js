@@ -1,4 +1,4 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwFoOqWWS1U92QnZ6f9qf349h6s_vqUOJ1Q4eGTJUitmD03LxC1q5jgGcPN0m0D6s88/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxtyf6UP5PmXsONchHzx1qS0M5lDYIJgMca-42g6geu00FXmDPkrT2kqW1Y2FJcVag/exec";
 const shops = [
   "MARUGO‑D", "MARUGO‑OTTO", "元祖どないや新宿三丁目", "鮨こるり",
   "MARUGO", "MARUGO2", "MARUGO GRANDE", "MARUGO MARUNOUCHI",
